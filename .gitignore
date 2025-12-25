@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+.env.local
+.gim-config.json
+*-migrated.csv
+test-issues.*
+example-issues.*
+*.csv
+*.json
+!tsconfig.json
+!package.json
