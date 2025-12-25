@@ -1,34 +1,38 @@
 # Quick Reference Guide
 
-## Commands Cheat Sheet
+## Commands Cheat Sheet (global `gim`)
 
 ```bash
-# Initialize new template
-npm run cli init --output issues.csv --example
+# Initialize config in repo
+gim init-config --repo owner/repo
 
-# Lint issues
-npm run cli lint issues.csv
-npm run cli lint issues.csv --fix --output fixed.csv
+# Initialize new template
+gim init --output issues.csv --example
+
+# Lint issues (uses config if provided)
+gim lint issues.csv --config .gim-config.json
+gim lint issues.csv --fix --output fixed.csv --config .gim-config.json
 
 # Import to GitHub
-npm run cli import issues.csv --repo owner/repo --dry-run
-npm run cli import issues.csv --repo owner/repo --auto-labels
+gim import issues.csv --config .gim-config.json --repo owner/repo --dry-run
+gim import issues.csv --config .gim-config.json --repo owner/repo --auto-labels
 
 # Export from GitHub
-npm run cli export --repo owner/repo --output exported.csv
+gim export --repo owner/repo --output exported.csv
 ```
 
 ## Issue Fields
 
-| Field               | Required    | Type     | Valid Values                                              |
-| ------------------- | ----------- | -------- | --------------------------------------------------------- |
-| GFS_ID              | ✅          | UUID v4  | Auto-generated if missing with `--fix`                    |
-| Title               | ✅          | String   | Must be unique                                            |
-| Milestone           | ⚠️ Optional | String   | Warned if empty                                           |
-| Scope               | ✅          | Enum     | `frontend`, `backend`, `devops`, `documentation`, `other` |
-| T-Shirt Size        | ✅          | Enum     | `XS`, `S`, `M`, `L`, `XL`, `XXL`                          |
-| Description         | ⚠️ Optional | Text     | Can be multi-paragraph                                    |
-| Acceptance Criteria | ⚠️ Optional | Markdown | Should use task list format: `- [ ] item`                 |
+| Field               | Required    | Type     | Valid Values (if configured)           |
+| ------------------- | ----------- | -------- | -------------------------------------- |
+| GFS_ID              | ✅          | UUID v4  | Auto-generated if missing with `--fix` |
+| Title               | ✅          | String   | Must be unique                         |
+| Milestone           | ⚠️ Optional | String   | Warned if empty                        |
+| Scope               | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
+| T-Shirt Size        | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
+| Priority            | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
+| Description         | ⚠️ Optional | Text     | Can be multi-paragraph                 |
+| Acceptance Criteria | ⚠️ Optional | Markdown | Task list recommended: `- [ ] item`    |
 
 ## CSV Formatting Tips
 
@@ -57,6 +61,7 @@ here"
       "Milestone": "v1.0.0",
       "Scope": "frontend",
       "T-Shirt Size": "M",
+      "Priority": "High",
       "Description": "Description here",
       "Acceptance Criteria": "- [ ] Task 1\n- [ ] Task 2"
     }
@@ -66,12 +71,12 @@ here"
 
 ## Import Flags
 
-| Flag            | Description                                |
-| --------------- | ------------------------------------------ |
-| `--dry-run`     | Preview changes without making them        |
-| `--create-only` | Only create new issues, skip updates       |
-| `--update-only` | Only update existing issues, skip creation |
-| `--auto-labels` | Auto-create `scope:*` and `size:*` labels  |
+| Flag            | Description                                                          |
+| --------------- | -------------------------------------------------------------------- |
+| `--dry-run`     | Preview changes without making them                                  |
+| `--create-only` | Only create new issues, skip updates                                 |
+| `--update-only` | Only update existing issues, skip creation                           |
+| `--auto-labels` | Auto-create `scope:*`, `size:*`, `priority:*` labels when configured |
 
 ## Validation Rules
 
@@ -80,8 +85,9 @@ here"
 - Missing or invalid GFS_ID
 - Missing Title
 - Duplicate GFS_ID
-- Invalid Scope value
-- Invalid T-Shirt Size value
+- Invalid Scope value (when scopes configured)
+- Invalid T-Shirt Size value (when sizes configured)
+- Invalid Priority value (when priorities configured)
 
 ### Warnings (Non-blocking)
 
@@ -105,10 +111,11 @@ Description text goes here...
 - [ ] Second requirement
 ```
 
-Labels added (with `--auto-labels`):
+Labels added (with `--auto-labels` when configured):
 
 - `scope:frontend` (or other scope)
 - `size:M` (or other size)
+- `priority:High` (or other priority)
 
 ## Troubleshooting
 
