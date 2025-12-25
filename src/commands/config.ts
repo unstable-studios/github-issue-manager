@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import type { RepoConfig } from '../config.js';
 import { DEFAULT_CONFIG } from '../config.js';
+import { detectGitHubRepo } from '../utils/git.js';
 
 const CONFIG_FILE = '.gim-config.json';
 
@@ -44,9 +45,15 @@ export function createConfig(
     throw new Error(`Config file already exists: ${path}`);
   }
 
+  // Auto-detect repo from git remote if not provided
+  const detectedRepo = repo || detectGitHubRepo();
+  if (!repo && detectedRepo) {
+    console.log(`✓ Detected GitHub repo from git remote: ${detectedRepo}`);
+  }
+
   const config: RepoConfig = {
     ...DEFAULT_CONFIG,
-    repository: repo || 'owner/repo',
+    repository: detectedRepo || 'owner/repo',
     scopes: [
       'frontend',
       'backend',

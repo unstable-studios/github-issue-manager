@@ -10,6 +10,7 @@ import { createConfig, validateConfig, loadConfig } from './commands/config.js';
 import { readCSV, writeCSV } from './formats/csv.js';
 import { readJSON, writeJSON, writeJSONArray } from './formats/json.js';
 import type { Issue } from './types.js';
+import { detectGitHubRepo } from './utils/git.js';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -174,7 +175,7 @@ function handleLint(args: string[]) {
 function handleImport(args: string[]) {
   if (args.length === 0) {
     console.error(
-      'Usage: import <file> --repo <owner/repo> [--config path] [--dry-run] [--create-only] [--update-only] [--auto-labels]'
+      'Usage: import <file> [--repo <owner/repo>] [--config path] [--dry-run] [--create-only] [--update-only] [--auto-labels]'
     );
     process.exit(1);
   }
@@ -203,9 +204,16 @@ function handleImport(args: string[]) {
     }
   }
 
+  // Auto-detect repo from git remote if not provided
   if (!repo) {
-    console.error('Error: --repo flag is required');
-    process.exit(1);
+    const detected = detectGitHubRepo();
+    if (detected) {
+      repo = detected;
+      console.log(`✓ Detected GitHub repo from git remote: ${repo}`);
+    } else {
+      console.error('Error: --repo flag is required (or run from within a git repo with GitHub remote)');
+      process.exit(1);
+    }
   }
 
   // Load config
@@ -266,9 +274,17 @@ function handleExport(args: string[]) {
     }
   }
 
+  // Auto-detect repo from git remote if not provided
   if (!repo) {
-    console.error('Usage: export --repo <owner/repo> [--format csv|json] [--output file]');
-    process.exit(1);
+    const detected = detectGitHubRepo();
+    if (detected) {
+      repo = detected;
+      console.log(`✓ Detected GitHub repo from git remote: ${repo}`);
+    } else {
+      console.error('Usage: export --repo <owner/repo> [--format csv|json] [--output file]');
+      console.error('(or run from within a git repo with GitHub remote)');
+      process.exit(1);
+    }
   }
 
   if (!output) {
