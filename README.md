@@ -18,7 +18,7 @@ gim --help
 
 ```bash
 # 1) Generate a config in your repo (scopes/sizes/priorities optional)
-gim init-config --repo owner/repo
+gim init-config              # auto-detects owner/repo from git remote; override with --repo
 
 # 2) Create a starter CSV (with sample issues)
 gim init --output issues.csv --example
@@ -27,17 +27,19 @@ gim init --output issues.csv --example
 gim lint issues.csv --config .gim-config.json
 
 # 4) Dry-run import
-gim import issues.csv --config .gim-config.json --repo owner/repo --dry-run
+gim import issues.csv --config .gim-config.json --dry-run   # auto-detects repo
 
 # 5) Apply changes (auto-labels optional)
-gim import issues.csv --config .gim-config.json --repo owner/repo --auto-labels
+gim import issues.csv --config .gim-config.json --auto-labels
 
 # 6) Export later for edits
-gim export --repo owner/repo --output exported.csv
+gim export --output exported.csv
 ```
 
 Notes:
 
+- Auto-detects GitHub repo from your git remote; use `--repo` to override.
+- Auto-detects `.gim-config.json` in the current repo; use `--config` to override.
 - `Scope`, `T-Shirt Size`, and `Priority` are validated only when defined in `.gim-config.json`; otherwise they remain optional.
 - Acceptance Criteria supports multiline Markdown (task lists recommended: `- [ ] item`).
 - Idempotent: issues carry `GFS_ID` and `GFS-HASH` markers; imports update only when content hash changes.
@@ -77,13 +79,13 @@ Example:
 
 ## Commands
 
-- `gim init-config --repo owner/repo` — generate `.gim-config.json` with optional scopes, sizes, priorities, milestones.
+- `gim init-config [--repo owner/repo]` — generate `.gim-config.json` (auto-detects repo from git remote unless overridden).
 - `gim validate-config --config .gim-config.json` — validate your config file.
 - `gim init --output issues.csv|json [--example] [--format json]` — create a blank or sample issue set.
 - `gim lint <file>` — validate CSV/JSON; supports `--config`, `--fix`, `--output`.
-- `gim import <file> --repo owner/repo` — idempotent create/update via `gh`; supports `--dry-run`, `--auto-labels`, `--create-only`, `--update-only`.
-- `gim export --repo owner/repo --output exported.csv` — round-trip export (CSV or `--format json`).
-- `gim migrate --input legacy.csv --output upgraded.csv` — add `GFS_ID`, normalize scope, preserve multiline acceptance criteria for legacy CSVs.
+- `gim import <file> [--repo owner/repo]` — idempotent create/update via `gh`; supports `--dry-run`, `--auto-labels`, `--create-only`, `--update-only` (repo auto-detected when omitted).
+- `gim export [--repo owner/repo] --output exported.csv` — round-trip export (CSV or `--format json`; repo auto-detected when omitted).
+- `gim migrate <file> [--output migrated.csv]` — interactive migration that fixes missing `GFS_ID`, validates fields against config, lets you add/alias/map invalid scopes/sizes/priorities via arrow-key prompts, updates the config, and writes a normalized CSV.
 
 ## Config (`.gim-config.json`)
 

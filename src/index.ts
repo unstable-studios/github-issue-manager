@@ -7,6 +7,7 @@ import { validateIssues, fixIssues } from './commands/lint.js';
 import { importIssues } from './commands/import.js';
 import { exportIssues } from './commands/export.js';
 import { createConfig, validateConfig, loadConfig } from './commands/config.js';
+import { migrateWithConfig } from './commands/migrate.js';
 import { readCSV, writeCSV } from './formats/csv.js';
 import { readJSON, writeJSON, writeJSONArray } from './formats/json.js';
 import type { Issue } from './types.js';
@@ -40,6 +41,10 @@ async function main() {
 
       case 'export':
         handleExport(args.slice(1));
+        break;
+
+      case 'migrate':
+        await handleMigrate(args.slice(1));
         break;
 
       default:
@@ -259,6 +264,28 @@ function handleImport(args: string[]) {
   }
 }
 
+  async function handleMigrate(args: string[]) {
+    if (args.length === 0) {
+      console.error('Usage: migrate <input-file> [--output file] [--config path]');
+      process.exit(1);
+    }
+
+    const inputFile = args[0];
+    let outputFile: string | undefined;
+    let configPath: string | undefined;
+
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--output' || args[i] === '-o') {
+        outputFile = args[++i];
+      } else if (args[i] === '--config') {
+        configPath = args[++i];
+      }
+    }
+
+    const resolvedOutput = outputFile || 'migrated.csv';
+    await migrateWithConfig(inputFile, resolvedOutput, configPath);
+  }
+
 function handleExport(args: string[]) {
   let repo = '';
   let format = 'csv';
@@ -328,17 +355,21 @@ Commands:
     --output, -o FILE             Write fixed output to file
 
   import <file>       Import issues from CSV or JSON file to GitHub
-    --repo OWNER/REPO             GitHub repository (required)
+    --repo OWNER/REPO             GitHub repository (auto-detects from git remote if omitted)
     --config FILE                 Path to config file (default: .gim-config.json)
     --dry-run                     Show what would happen without changes
     --create-only                 Only create new issues, skip updates
     --update-only                 Only update existing issues, skip creation
-    --auto-labels                 Auto-create scope:* and size:* labels
+    --auto-labels                 Auto-create scope:*, size:*, priority:* labels
 
   export              Export issues from GitHub to CSV or JSON
-    --repo OWNER/REPO             GitHub repository (required)
+    --repo OWNER/REPO             GitHub repository (auto-detects from git remote if omitted)
     --format csv|json             Output format (default: csv)
     --output, -o FILE             Output file path
+
+  migrate <file>     Interactive migrate/normalize CSV against config
+    --output, -o FILE             Output file path (default: migrated.csv)
+    --config FILE                 Path to config file (default: .gim-config.json)
 
 Examples:
 

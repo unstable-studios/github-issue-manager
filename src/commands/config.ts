@@ -67,6 +67,9 @@ export function createConfig(
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     priorities: ['P0', 'P1', 'P2', 'P3'],
     milestones: ['v1.0.0', 'v2.0.0'],
+    scopeAliases: {},
+    sizeAliases: {},
+    priorityAliases: {},
   };
 
   writeFileSync(path, JSON.stringify(config, null, 2), 'utf-8');

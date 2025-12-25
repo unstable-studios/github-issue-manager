@@ -3,8 +3,8 @@
 ## Commands Cheat Sheet (global `gim`)
 
 ```bash
-# Initialize config in repo
-gim init-config --repo owner/repo
+# Initialize config in repo (auto-detects repo; override with --repo)
+gim init-config
 
 # Initialize new template
 gim init --output issues.csv --example
@@ -13,13 +13,18 @@ gim init --output issues.csv --example
 gim lint issues.csv --config .gim-config.json
 gim lint issues.csv --fix --output fixed.csv --config .gim-config.json
 
-# Import to GitHub
-gim import issues.csv --config .gim-config.json --repo owner/repo --dry-run
-gim import issues.csv --config .gim-config.json --repo owner/repo --auto-labels
+# Import to GitHub (repo auto-detected; override with --repo)
+gim import issues.csv --config .gim-config.json --dry-run
+gim import issues.csv --config .gim-config.json --auto-labels
 
-# Export from GitHub
-gim export --repo owner/repo --output exported.csv
+# Export from GitHub (repo auto-detected; override with --repo)
+gim export --output exported.csv
+
+# Interactive migrate (map invalid fields, update config)
+gim migrate issues.csv --output migrated.csv
 ```
+
+`gim migrate` is interactive: it detects invalid scopes/sizes/priorities, lets you add them to the config or map them to existing values via arrow-key selection, saves aliases to `.gim-config.json`, and writes a normalized CSV.
 
 ## Issue Fields
 
