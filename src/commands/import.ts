@@ -1,4 +1,4 @@
-import { execSync, spawnSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import type {
   Issue,
   ImportOptions,
@@ -13,18 +13,40 @@ import {
 } from '../utils/uuid.js';
 import { computeContentHash } from '../utils/hash.js';
 
+// Verbose logging for gh invocations
+let VERBOSE = false;
+export function setGhVerbose(v: boolean) {
+  VERBOSE = v;
+}
+
 /**
- * Executes a gh CLI command and returns the output
+ * Executes a gh CLI command (no shell) and returns stdout
  */
 function execGh(args: string[]): string {
-  try {
-    return execSync(`gh ${args.join(' ')}`, {
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }).trim();
-  } catch (error) {
-    throw new Error(`GitHub CLI error: ${error instanceof Error ? error.message : String(error)}`);
+  const env = { ...process.env } as NodeJS.ProcessEnv;
+  if (env.GITHUB_TOKEN && !env.GH_TOKEN) env.GH_TOKEN = env.GITHUB_TOKEN;
+  if (env.GH_TOKEN && !env.GITHUB_TOKEN) env.GITHUB_TOKEN = env.GH_TOKEN;
+
+  if (VERBOSE) {
+    console.log('[gh]', args.join(' '));
   }
+
+  const result = spawnSync('gh', args, {
+    encoding: 'utf-8',
+    env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  if (result.error) {
+    throw new Error(`GitHub CLI error: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    const stderr = result.stderr?.toString() ?? '';
+    const stdout = result.stdout?.toString() ?? '';
+    throw new Error(`GitHub CLI exited with ${result.status}: ${stderr || stdout}`);
+  }
+
+  return (result.stdout || '').toString().trim();
 }
 
 function execGhInput(args: string[], input: string): string {
@@ -32,6 +54,10 @@ function execGhInput(args: string[], input: string): string {
   // bridge tokens if only one is set
   if (env.GITHUB_TOKEN && !env.GH_TOKEN) env.GH_TOKEN = env.GITHUB_TOKEN;
   if (env.GH_TOKEN && !env.GITHUB_TOKEN) env.GITHUB_TOKEN = env.GH_TOKEN;
+
+  if (VERBOSE) {
+    console.log('[gh]', args.join(' '), `(stdin ${input.length} bytes)`);
+  }
 
   const result = spawnSync('gh', args, {
     encoding: 'utf-8',
@@ -55,6 +81,10 @@ function execGhJson(args: string[]): any {
   const env = { ...process.env } as NodeJS.ProcessEnv;
   if (env.GITHUB_TOKEN && !env.GH_TOKEN) env.GH_TOKEN = env.GITHUB_TOKEN;
   if (env.GH_TOKEN && !env.GITHUB_TOKEN) env.GITHUB_TOKEN = env.GH_TOKEN;
+
+  if (VERBOSE) {
+    console.log('[gh]', args.join(' '));
+  }
 
   const result = spawnSync('gh', args, {
     encoding: 'utf-8',
@@ -80,16 +110,16 @@ function execGhJson(args: string[]): any {
 }
 
 function listMilestones(repo: string): { title: string; number: number }[] {
-  const data = execGhJson(['api', `repos/${repo}/milestones`]);
-  if (Array.isArray(data)) {
-    return data.map((m: any) => ({ title: m.title, number: m.number }));
-  }
-  return [];
+  const milestones = execGhJson(['api', `repos/${repo}/milestones`]);
+  return Array.isArray(milestones)
+    ? milestones.map((m: any) => ({ title: m.title, number: m.number }))
+    : [];
 }
 
 function createMilestone(repo: string, title: string): { title: string; number: number } | null {
   try {
-    const data = execGhJson(['api', `repos/${repo}/milestones`, '-f', `title=${title}`]);
+    // Use -F to send JSON body fields; -f is for query params
+    const data = execGhJson(['api', `repos/${repo}/milestones`, '-X', 'POST', '-F', `title=${title}`]);
     return { title: data.title, number: data.number };
   } catch {
     return null;
@@ -124,7 +154,7 @@ function prepareMilestoneArg(
  * Fetches all issues from a repository
  */
 export function fetchAllIssues(repo: string): GithubIssue[] {
-  const output = execGh([
+  const data = execGhJson([
     'issue',
     'list',
     '-R',
@@ -136,12 +166,7 @@ export function fetchAllIssues(repo: string): GithubIssue[] {
     '--json',
     'number,title,body,state,milestone,labels',
   ]);
-
-  try {
-    return JSON.parse(output);
-  } catch {
-    return [];
-  }
+  return Array.isArray(data) ? (data as GithubIssue[]) : [];
 }
 
 /**
@@ -232,10 +257,9 @@ function createGithubIssue(
       '-', // read body from stdin
     ];
 
-    // milestone if provided and exists (or auto-created)
-    const milestoneArg = prepareMilestoneArg(repo, issue.Milestone, false /* autoCreate handled at higher level? */, false /* not dry-run here */);
-    if (milestoneArg) {
-      args.push('--milestone', milestoneArg);
+    // milestone: outer flow ensures existence; just pass if present
+    if (issue.Milestone && issue.Milestone.trim()) {
+      args.push('--milestone', issue.Milestone);
     }
 
     const output = execGhInput(args, body);
@@ -275,14 +299,13 @@ function updateGithubIssue(
       repo,
       '--title',
       issue.Title,
-      '--body',
-      body,
+      '--body-file',
+      '-',
     ];
-    const milestoneArg = prepareMilestoneArg(repo, issue.Milestone, false, false);
-    if (milestoneArg) {
-      args.push('--milestone', milestoneArg);
+    if (issue.Milestone && issue.Milestone.trim()) {
+      args.push('--milestone', issue.Milestone);
     }
-    execGh(args);
+    execGhInput(args, body);
   } catch (error) {
     throw new Error(
       `Failed to update issue #${issueNumber}: ${error instanceof Error ? error.message : String(error)}`
@@ -330,7 +353,7 @@ function addLabelsToIssue(
       '-R',
       repo,
       '--add-label',
-      labels.join(','), // supports comma-separated per gh manual
+      labels.join(','),
     ]);
   } catch (error) {
     throw new Error(

@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { resolve, extname } from 'path';
 import { generateExampleIssues } from './commands/init.js';
 import { validateIssues, fixIssues } from './commands/lint.js';
-import { importIssues } from './commands/import.js';
+import { importIssues, setGhVerbose } from './commands/import.js';
 import { exportIssues } from './commands/export.js';
 import { createConfig, validateConfig, loadConfig } from './commands/config.js';
 import { migrateWithConfig } from './commands/migrate.js';
@@ -192,6 +192,7 @@ function handleImport(args: string[]) {
   let updateOnly = false;
   let autoCreateLabels = false;
   let autoCreateMilestones = false;
+  let verbose = false;
   let configPath: string | undefined;
 
   for (let i = 1; i < args.length; i++) {
@@ -207,6 +208,8 @@ function handleImport(args: string[]) {
       autoCreateLabels = true;
     } else if (args[i] === '--auto-milestones') {
       autoCreateMilestones = true;
+    } else if (args[i] === '--verbose' || args[i] === '-v') {
+      verbose = true;
     } else if (args[i] === '--config') {
       configPath = args[++i];
     }
@@ -247,6 +250,10 @@ function handleImport(args: string[]) {
     console.error('\n❌ Validation failed:');
     validation.errors.forEach((err) => console.error(`  - ${err}`));
     process.exit(1);
+  }
+
+  if (verbose) {
+    setGhVerbose(true);
   }
 
   const result = importIssues(issues, {
@@ -366,6 +373,7 @@ Commands:
     --update-only                 Only update existing issues, skip creation
     --auto-labels                 Auto-create scope:*, size:*, priority:* labels
     --auto-milestones             Create missing milestones by name if they don't exist
+    --verbose, -v                 Print gh commands as they run
 
   export              Export issues from GitHub to CSV or JSON
     --repo OWNER/REPO             GitHub repository (auto-detects from git remote if omitted)
