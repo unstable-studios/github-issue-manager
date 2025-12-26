@@ -6,11 +6,24 @@ const HEADERS: (keyof Issue)[] = [
   'Title',
   'Milestone',
   'Scope',
-  'T-Shirt Size',
+  'Size',
   'Priority',
   'Description',
-  'Acceptance Criteria',
+
 ];
+
+function normalizeHeader(header: string): keyof Issue | null {
+  const h = header.trim().toLowerCase();
+  if (h === 'gfs_id' || h === 'gfs-id' || h === 'gfs id') return 'GFS_ID';
+  if (h === 'title') return 'Title';
+  if (h === 'milestone') return 'Milestone';
+  if (h === 'scope') return 'Scope';
+  if (h === 'size') return 'Size';
+  if (h === 'priority') return 'Priority';
+  if (h === 'description') return 'Description';
+  if (h.startsWith('acceptance criteria')) return 'Acceptance Criteria';
+  return null;
+}
 
 /**
  * Escapes a field value for CSV output
@@ -122,10 +135,10 @@ export function readCSV(filePath: string): Issue[] {
     keyof Issue,
     number
   >;
-  HEADERS.forEach((header) => {
-    const index = headerFields.indexOf(header);
-    if (index >= 0) {
-      headerIndices[header] = index;
+  headerFields.forEach((header, idx) => {
+    const mapped = normalizeHeader(header);
+    if (mapped) {
+      headerIndices[mapped] = idx;
     }
   });
 
@@ -133,12 +146,13 @@ export function readCSV(filePath: string): Issue[] {
 
   for (let i = 1; i < lines.length; i++) {
     const fields = parseCSVLine(lines[i]);
+
     const issue: any = {};
 
     HEADERS.forEach((header) => {
       const index = headerIndices[header];
-      if (index !== undefined && fields[index]) {
-        issue[header] = fields[index];
+      if (index !== undefined && index < fields.length) {
+        issue[header] = fields[index] ?? '';
       }
     });
 

@@ -34,7 +34,7 @@ gim migrate issues.csv --output migrated.csv
 | Title               | ✅          | String   | Must be unique                         |
 | Milestone           | ⚠️ Optional | String   | Warned if empty                        |
 | Scope               | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
-| T-Shirt Size        | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
+| Size                | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
 | Priority            | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
 | Description         | ⚠️ Optional | Text     | Can be multi-paragraph                 |
 | Acceptance Criteria | ⚠️ Optional | Markdown | Task list recommended: `- [ ] item`    |
@@ -65,7 +65,7 @@ here"
       "Title": "Issue title",
       "Milestone": "v1.0.0",
       "Scope": "frontend",
-      "T-Shirt Size": "M",
+      "Size": "M",
       "Priority": "High",
       "Description": "Description here",
       "Acceptance Criteria": "- [ ] Task 1\n- [ ] Task 2"
@@ -92,7 +92,7 @@ here"
 - Missing Title
 - Duplicate GFS_ID
 - Invalid Scope value (when scopes configured)
-- Invalid T-Shirt Size value (when sizes configured)
+- Invalid Size value (when sizes configured)
 - Invalid Priority value (when priorities configured)
 
 ### Warnings (Non-blocking)

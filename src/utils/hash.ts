@@ -10,7 +10,7 @@ export function computeContentHash(issue: Issue): string {
     description: issue.Description,
     acceptanceCriteria: issue['Acceptance Criteria'],
     scope: issue.Scope,
-    size: issue['T-Shirt Size'],
+    size: issue['Size'],
     priority: issue.Priority,
     milestone: issue.Milestone,
   });
@@ -27,7 +27,7 @@ export function computeFullHash(issue: Issue): string {
     description: issue.Description,
     acceptanceCriteria: issue['Acceptance Criteria'],
     scope: issue.Scope,
-    size: issue['T-Shirt Size'],
+    size: issue['Size'],
     milestone: issue.Milestone,
   });
 

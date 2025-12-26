@@ -13,7 +13,7 @@ interface LegacyIssue {
   Milestone: string;
   Title: string;
   Scope: string;
-  'T-Shirt Size': string;
+  'Size': string;
   Description: string;
   'Acceptance Criteria (Markdown task list)': string;
 }
@@ -142,7 +142,7 @@ export function migrateLegacyCSV(inputPath: string, outputPath: string): void {
     Milestone: 'Milestone',
     Title: 'Title',
     Scope: 'Scope',
-    'T-Shirt Size': 'T-Shirt Size',
+    'Size': 'Size',
     Description: 'Description',
     'Acceptance Criteria (Markdown task list)': 'Acceptance Criteria',
   };
@@ -176,7 +176,7 @@ export function migrateLegacyCSV(inputPath: string, outputPath: string): void {
         // Provide defaults for missing values
         if (newName === 'Scope') {
           issue[newName] = 'other';
-        } else if (newName === 'T-Shirt Size') {
+        } else if (newName === 'Size') {
           issue[newName] = 'M';
         } else {
           issue[newName] = '';
@@ -195,7 +195,7 @@ export function migrateLegacyCSV(inputPath: string, outputPath: string): void {
     'Title',
     'Milestone',
     'Scope',
-    'T-Shirt Size',
+    'Size',
     'Description',
     'Acceptance Criteria',
   ];

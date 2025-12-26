@@ -94,7 +94,7 @@ function githubIssueToIssue(githubIssue: GithubIssue): Issue {
     Title: githubIssue.title,
     Milestone: githubIssue.milestone?.title || '',
     Scope: scope as any,
-    'T-Shirt Size': size as any,
+    'Size': size as any,
     Description: description,
     'Acceptance Criteria': acceptanceCriteria,
   };

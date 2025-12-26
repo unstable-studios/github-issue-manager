@@ -10,7 +10,7 @@ export function generateExampleIssue(): Issue {
     Title: 'Example: Implement feature X',
     Milestone: 'v1.0.0',
     Scope: 'frontend',
-    'T-Shirt Size': 'M',
+    'Size': 'M',
     Description:
       'This is an example description.\n\nIt can span multiple paragraphs.',
     'Acceptance Criteria': '- [ ] Requirement 1\n- [ ] Requirement 2\n- [ ] Requirement 3',
@@ -26,7 +26,7 @@ export function generateEmptyIssue(): Issue {
     Title: '',
     Milestone: '',
     Scope: 'other',
-    'T-Shirt Size': 'M',
+    'Size': 'M',
     Description: '',
     'Acceptance Criteria': '- [ ] \n- [ ] ',
   };
@@ -42,7 +42,7 @@ export function generateExampleIssues(): Issue[] {
       Title: 'Create login page',
       Milestone: 'v1.0.0',
       Scope: 'frontend',
-      'T-Shirt Size': 'M',
+      'Size': 'M',
       Description:
         'Build the main login page with email/password authentication',
       'Acceptance Criteria':
@@ -53,7 +53,7 @@ export function generateExampleIssues(): Issue[] {
       Title: 'Setup database schema',
       Milestone: 'v1.0.0',
       Scope: 'backend',
-      'T-Shirt Size': 'L',
+      'Size': 'L',
       Description: 'Design and implement the initial database schema',
       'Acceptance Criteria':
         '- [ ] Create users table\n- [ ] Create posts table\n- [ ] Add foreign key relationships\n- [ ] Create indices',
@@ -63,7 +63,7 @@ export function generateExampleIssues(): Issue[] {
       Title: 'Write API documentation',
       Milestone: 'v1.0.0',
       Scope: 'documentation',
-      'T-Shirt Size': 'S',
+      'Size': 'S',
       Description:
         'Document all REST API endpoints with examples and error codes',
       'Acceptance Criteria':

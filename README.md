@@ -40,14 +40,14 @@ Notes:
 
 - Auto-detects GitHub repo from your git remote; use `--repo` to override.
 - Auto-detects `.gim-config.json` in the current repo; use `--config` to override.
-- `Scope`, `T-Shirt Size`, and `Priority` are validated only when defined in `.gim-config.json`; otherwise they remain optional.
+- `Scope`, `Size`, and `Priority` are validated only when defined in `.gim-config.json`; otherwise they remain optional.
 - Acceptance Criteria supports multiline Markdown (task lists recommended: `- [ ] item`).
 - Idempotent: issues carry `GFS_ID` and `GFS-HASH` markers; imports update only when content hash changes.
 
 ## CSV Format
 
 Canonical column order:
-`GFS_ID,Title,Milestone,Scope,T-Shirt Size,Priority,Description,Acceptance Criteria`
+`GFS_ID,Title,Milestone,Scope,Size,Priority,Description,Acceptance Criteria`
 
 Example:
 
@@ -68,7 +68,7 @@ Example:
       "Title": "Create login page",
       "Milestone": "v1.0.0",
       "Scope": "frontend",
-      "T-Shirt Size": "M",
+      "Size": "M",
       "Priority": "High",
       "Description": "Build main login page",
       "Acceptance Criteria": "- [ ] Email input\n- [ ] Password input\n- [ ] Submit button"

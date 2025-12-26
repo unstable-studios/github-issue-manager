@@ -160,7 +160,7 @@ Fixed column order:
 2. Title
 3. Milestone
 4. Scope
-5. T-Shirt Size
+5. Size
 6. Description
 7. Acceptance Criteria
 
@@ -182,7 +182,7 @@ Encoding rules:
       "Title": "string",
       "Milestone": "string",
       "Scope": "enum",
-      "T-Shirt Size": "enum",
+      "Size": "enum",
       "Description": "string",
       "Acceptance Criteria": "string"
     }
@@ -221,7 +221,7 @@ interface Issue {
   Title: string; // Required
   Milestone: string; // Optional
   Scope: Scope; // Enum
-  "T-Shirt Size": TShirtSize; // Enum
+  Size: TShirtSize; // Enum
   Description: string; // Markdown
   "Acceptance Criteria": string; // Markdown task list
 }

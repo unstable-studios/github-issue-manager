@@ -72,10 +72,10 @@ export function validateIssues(
       );
     }
 
-    // Validate T-Shirt Size (only if sizes are configured)
-    if (VALID_SIZES.length > 0 && issue['T-Shirt Size'] && !VALID_SIZES.includes(issue['T-Shirt Size'])) {
+    // Validate Size (only if sizes are configured)
+    if (VALID_SIZES.length > 0 && issue['Size'] && !VALID_SIZES.includes(issue['Size'])) {
       errors.push(
-        `Row ${row}: Invalid T-Shirt Size "${issue['T-Shirt Size']}". Must be one of: ${VALID_SIZES.join(', ')}`
+        `Row ${row}: Invalid Size "${issue['Size']}". Must be one of: ${VALID_SIZES.join(', ')}`
       );
     }
 

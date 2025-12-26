@@ -11,10 +11,10 @@ export interface Issue {
   Title: string;
   Milestone: string;
   Scope?: Scope;
-  'T-Shirt Size'?: TShirtSize;
+  'Size'?: TShirtSize;
   Priority?: string;
   Description: string;
-  'Acceptance Criteria': string; // Markdown task list
+  'Acceptance Criteria'?: string; // Markdown task list
 }
 
 export interface ValidationResult {
