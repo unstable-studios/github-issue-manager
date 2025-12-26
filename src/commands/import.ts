@@ -179,7 +179,11 @@ const projectListCache = new Map<string, ProjectInfo[]>();
 
 function getProjectId(owner: string, number: number): string | null {
   try {
-    const data = execGhJson(['project', 'view', String(number), '--format', 'json']);
+    const args = ['project', 'view', String(number), '--format', 'json'];
+    if (owner && owner !== '@me') {
+      args.push('--owner', owner);
+    }
+    const data = execGhJson(args);
     return data?.id || null;
   } catch (err) {
     console.warn(`[gh] Failed to get project id for ${owner}#${number}:`, err instanceof Error ? err.message : String(err));
@@ -193,33 +197,37 @@ function listProjects(owner: string, refresh = false): ProjectInfo[] {
   }
   const projects: ProjectInfo[] = [];
   const seen = new Set<string>();
-  
-  // Try to get org projects
-  try {
-    const orgData = execGhJson(['project', 'list', '--format', 'json', '--limit', '100']);
-    const orgProjects = orgData?.projects || [];
-    if (Array.isArray(orgProjects) && orgProjects.length > 0) {
-      orgProjects.forEach((p: any) => {
-        const key = `${p.number}:${p.title}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          projects.push({
-            id: p.id || '',
-            title: p.title || '',
-            number: p.number || 0,
-            closed: p.closed || false,
-            ownerArg: owner
-          });
-        }
-      });
+
+  // Get org projects explicitly by owner
+  if (owner && owner !== '@me') {
+    try {
+      const orgArgs = ['project', 'list', '--format', 'json', '--limit', '100', '--owner', owner];
+      const orgData = execGhJson(orgArgs);
+      const orgProjects = orgData?.projects || [];
+      if (Array.isArray(orgProjects) && orgProjects.length > 0) {
+        orgProjects.forEach((p: any) => {
+          const key = `${p.number}:${p.title}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            projects.push({
+              id: p.id || '',
+              title: p.title || '',
+              number: p.number || 0,
+              closed: p.closed || false,
+              ownerArg: owner
+            });
+          }
+        });
+      }
+    } catch (err) {
+      console.warn(`[gh] Could not fetch projects for owner ${owner}:`, err instanceof Error ? err.message : String(err));
     }
-  } catch (err) {
-    console.warn(`[gh] Could not fetch projects for owner ${owner}:`, err instanceof Error ? err.message : String(err));
   }
-  
-  // Also get user's own projects
+
+  // Also get user's own projects explicitly
   try {
-    const userData = execGhJson(['project', 'list', '--format', 'json', '--limit', '100']);
+    const userArgs = ['project', 'list', '--format', 'json', '--limit', '100', '--owner', '@me'];
+    const userData = execGhJson(userArgs);
     const userProjects = userData?.projects || [];
     if (Array.isArray(userProjects) && userProjects.length > 0) {
       userProjects.forEach((p: any) => {
@@ -239,7 +247,7 @@ function listProjects(owner: string, refresh = false): ProjectInfo[] {
   } catch (err) {
     console.warn('[gh] Could not fetch user projects:', err instanceof Error ? err.message : String(err));
   }
-  
+
   projectListCache.set(owner, projects);
   return projects;
 }
@@ -328,8 +336,10 @@ function getProjectFields(owner: string, projectNumber: number, refresh = false)
   }
 
   try {
-    const args = ['project', 'field-list', String(projectNumber)];
-    args.push('--format', 'json', '--limit', '100');
+    const args = ['project', 'field-list', String(projectNumber), '--format', 'json', '--limit', '100'];
+    if (owner && owner !== '@me') {
+      args.push('--owner', owner);
+    }
     const data = execGhJson(args);
     if (VERBOSE) console.log('[gh] Project fields data:', JSON.stringify(data));
     const fields = data?.fields || [];
@@ -351,32 +361,29 @@ function getProjectFields(owner: string, projectNumber: number, refresh = false)
 }
 
 function ensureSingleSelectField(owner: string, projectNumber: number, name: string, desiredOptions: string[]): { id: string; options: Record<string, string> } {
-  const fields = getProjectFields(owner, projectNumber);
+  // First attempt: use cached field list
+  let fields = getProjectFields(owner, projectNumber);
   let fieldInfo = fields.find((f) => f.name === name);
 
+  // If field doesn't exist, create it, then refresh field list once
   if (!fieldInfo) {
-    const args = ['project', 'field-create', String(projectNumber)];
-    args.push(
-      '--name',
-      name,
-      '--data-type',
-      'SINGLE_SELECT',
-      '--format',
-      'json',
-      '--single-select-options'
-    );
+    const args = ['project', 'field-create', String(projectNumber), '--name', name, '--data-type', 'SINGLE_SELECT', '--format', 'json', '--single-select-options'];
+    if (owner && owner !== '@me') {
+      args.push('--owner', owner);
+    }
     args.push(desiredOptions.length > 0 ? desiredOptions.join(',') : 'default');
 
     let createError: unknown;
     try {
       const result = execGhJson(args);
       fieldInfo = { id: result.id, name, dataType: 'SINGLE_SELECT', options: [] };
-      getProjectFields(owner, projectNumber, true);
+      // Refresh once after create so cache contains options
+      fields = getProjectFields(owner, projectNumber, true);
     } catch (err) {
       createError = err;
-      // If creation failed, refresh and see if it now exists (upsert semantics)
-      const refreshed = getProjectFields(owner, projectNumber, true);
-      fieldInfo = refreshed.find((f) => f.name === name);
+      // Refresh once to check if concurrent creation succeeded
+      fields = getProjectFields(owner, projectNumber, true);
+      fieldInfo = fields.find((f) => f.name === name);
       if (!fieldInfo) {
         const msg = createError instanceof Error ? createError.message : String(createError);
         throw new Error(`Failed to upsert field ${name}: ${msg}`);
@@ -384,16 +391,16 @@ function ensureSingleSelectField(owner: string, projectNumber: number, name: str
     }
   }
 
-  // Single fetch to map option IDs
-  const withOptions = getProjectFields(owner, projectNumber, true).find((f) => f.name === name);
+  // Build option map from the same (potentially refreshed) field list
+  const fieldWithOptions = (fields.find((f) => f.name === name) || fieldInfo);
   const optionMap: Record<string, string> = {};
-  if (withOptions?.options) {
-    for (const o of withOptions.options) {
+  if (fieldWithOptions?.options) {
+    for (const o of fieldWithOptions.options) {
       optionMap[o.name] = o.id;
     }
   }
 
-  return { id: fieldInfo?.id || withOptions?.id || '', options: optionMap };
+  return { id: fieldInfo?.id || fieldWithOptions?.id || '', options: optionMap };
 }
 
 export async function ensureProjectConfiguredAsync(configOrPath?: RepoConfig | string, repo?: string): Promise<RepoConfig> {
@@ -469,8 +476,9 @@ function ensureIssueInProjectAndSetFields(
       const data = execGhJson([
         'project',
         'item-list',
-        '--project-id',
-        String(config.project!.id),
+        String(config.project!.number),
+        '--owner',
+        owner,
         '--format',
         'json',
         '--limit',
@@ -491,8 +499,9 @@ function ensureIssueInProjectAndSetFields(
       const added = execGhJson([
         'project',
         'item-add',
-        '--project-id',
-        String(config.project!.id),
+        String(config.project!.number),
+        '--owner',
+        owner,
         '--url',
         issueUrl,
         '--format',
@@ -523,10 +532,11 @@ function ensureIssueInProjectAndSetFields(
       execGh([
         'project',
         'item-edit',
+        String(config.project!.number),
         '--id',
         itemId!,
-        '--project-id',
-        String(config.project!.id),
+        '--owner',
+        owner,
         '--field-id',
         field.id,
         '--single-select-option-id',
