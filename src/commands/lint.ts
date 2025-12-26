@@ -86,18 +86,6 @@ export function validateIssues(
       );
     }
 
-    // Validate Acceptance Criteria format (should be markdown task list)
-    if (issue['Acceptance Criteria'] && issue['Acceptance Criteria'].trim()) {
-      const lines = issue['Acceptance Criteria'].split('\n');
-      const hasTaskItems = lines.some((line) => line.match(/^\s*-\s*\[\s*[\sx]\s*\]/));
-
-      if (!hasTaskItems) {
-        warnings.push(
-          `Row ${row}: Acceptance Criteria should use markdown task list format (- [ ] item)`
-        );
-      }
-    }
-
     // Warn if Milestone is empty
     if (!issue.Milestone || !issue.Milestone.trim()) {
       warnings.push(`Row ${row}: Milestone is empty`);

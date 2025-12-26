@@ -41,13 +41,12 @@ Notes:
 - Auto-detects GitHub repo from your git remote; use `--repo` to override.
 - Auto-detects `.gim-config.json` in the current repo; use `--config` to override.
 - `Scope`, `Size`, and `Priority` are validated only when defined in `.gim-config.json`; otherwise they remain optional.
-- Acceptance Criteria supports multiline Markdown (task lists recommended: `- [ ] item`).
 - Idempotent: issues carry `GFS_ID` and `GFS-HASH` markers; imports update only when content hash changes.
 
 ## CSV Format
 
 Canonical column order:
-`GFS_ID,Title,Milestone,Scope,Size,Priority,Description,Acceptance Criteria`
+`GFS_ID,Title,Milestone,Scope,Size,Priority,Description`
 
 Example:
 
@@ -70,8 +69,7 @@ Example:
       "Scope": "frontend",
       "Size": "M",
       "Priority": "High",
-      "Description": "Build main login page",
-      "Acceptance Criteria": "- [ ] Email input\n- [ ] Password input\n- [ ] Submit button"
+      "Description": "Build main login page"
     }
   ]
 }
@@ -112,7 +110,7 @@ npm run cli -- --help       # compiled entry
 
 ## How It Works
 
-- Identity: `GFS_ID` stored in issue body markers; hash (`GFS-HASH`) covers description, acceptance criteria, milestone, scope, size, priority.
+- Identity: `GFS_ID` stored in issue body markers; hash (`GFS-HASH`) covers description, milestone, scope, size, priority.
 - Imports: find issues by `GFS_ID`, update only on hash change; safe to re-run.
 - Labels: optional auto-labels `scope:<value>`, `size:<value>`, `priority:<value>` when configured.
 

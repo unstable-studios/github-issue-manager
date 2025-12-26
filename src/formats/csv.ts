@@ -21,7 +21,6 @@ function normalizeHeader(header: string): keyof Issue | null {
   if (h === 'size') return 'Size';
   if (h === 'priority') return 'Priority';
   if (h === 'description') return 'Description';
-  if (h.startsWith('acceptance criteria')) return 'Acceptance Criteria';
   return null;
 }
 

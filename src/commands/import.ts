@@ -466,6 +466,12 @@ export async function ensureProjectConfiguredAsync(configOrPath?: RepoConfig | s
   // Ensure fields and options
   if (config.project?.id && config.project?.number) {
     const owner = config.project.owner || repoOwner(repo);
+    // Prefetch project fields once to populate cache and minimize gh calls
+    try {
+      getProjectFields(owner, config.project.number);
+    } catch (e) {
+      console.warn('[gh] Unable to prefetch project fields:', e instanceof Error ? e.message : String(e));
+    }
     const scopeList = config.scopes || [];
     const sizeList = config.sizes || [];
     const priorityList = config.priorities || [];
@@ -657,16 +663,9 @@ function extractIssueData(issue: GithubIssue): InternalIssueData | null {
 
   const contentHash = extractContentHash(issue.body || '');
   const descriptionMatch = (issue.body || '').match(
-    /<!-- GFS-ID:.*?-->\n?(?:<!-- GFS-HASH:.*?-->\n?)?([\s\S]*?)(?=\n## Acceptance Criteria|$)/
+    /<!--\s*GFS-ID:.*?-->\s*\n?(?:<!--\s*GFS-HASH:.*?-->\s*\n?)?([\s\S]*)/
   );
   const description = descriptionMatch ? descriptionMatch[1].trim() : '';
-
-  const acceptanceCriteriaMatch = (issue.body || '').match(
-    /## Acceptance Criteria\n([\s\S]*?)(?=\n## |$)/
-  );
-  const acceptanceCriteria = acceptanceCriteriaMatch
-    ? acceptanceCriteriaMatch[1].trim()
-    : '';
 
   // Extract scope from labels
   const scopeLabel = (issue.labels || []).find((l) =>
@@ -685,7 +684,6 @@ function extractIssueData(issue: GithubIssue): InternalIssueData | null {
     contentHash: contentHash || '',
     title: issue.title,
     description,
-    acceptanceCriteria,
     scope: scope as any,
     size: size as any,
     milestone: issue.milestone?.title || '',
@@ -784,11 +782,7 @@ function formatIssueBody(issue: Issue): string {
   const body = `<!-- GFS-ID: ${gfsId} -->
 <!-- GFS-HASH: ${contentHash} -->
 
-${issue.Description}
-
-## Acceptance Criteria
-
-${issue['Acceptance Criteria']}`;
+${issue.Description}`;
 
   return body;
 }

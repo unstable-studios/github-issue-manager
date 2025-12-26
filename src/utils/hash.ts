@@ -8,7 +8,6 @@ import type { Issue } from '../types.js';
 export function computeContentHash(issue: Issue): string {
   const content = JSON.stringify({
     description: issue.Description,
-    acceptanceCriteria: issue['Acceptance Criteria'],
     scope: issue.Scope,
     size: issue['Size'],
     priority: issue.Priority,
@@ -25,7 +24,6 @@ export function computeFullHash(issue: Issue): string {
   const content = JSON.stringify({
     title: issue.Title,
     description: issue.Description,
-    acceptanceCriteria: issue['Acceptance Criteria'],
     scope: issue.Scope,
     size: issue['Size'],
     milestone: issue.Milestone,

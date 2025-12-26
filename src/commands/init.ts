@@ -13,7 +13,6 @@ export function generateExampleIssue(): Issue {
     'Size': 'M',
     Description:
       'This is an example description.\n\nIt can span multiple paragraphs.',
-    'Acceptance Criteria': '- [ ] Requirement 1\n- [ ] Requirement 2\n- [ ] Requirement 3',
   };
 }
 
@@ -28,7 +27,6 @@ export function generateEmptyIssue(): Issue {
     Scope: 'other',
     'Size': 'M',
     Description: '',
-    'Acceptance Criteria': '- [ ] \n- [ ] ',
   };
 }
 
@@ -45,8 +43,6 @@ export function generateExampleIssues(): Issue[] {
       'Size': 'M',
       Description:
         'Build the main login page with email/password authentication',
-      'Acceptance Criteria':
-        '- [ ] Email input field\n- [ ] Password input field\n- [ ] Submit button\n- [ ] Error message display',
     },
     {
       GFS_ID: generateUUID(),
@@ -55,8 +51,6 @@ export function generateExampleIssues(): Issue[] {
       Scope: 'backend',
       'Size': 'L',
       Description: 'Design and implement the initial database schema',
-      'Acceptance Criteria':
-        '- [ ] Create users table\n- [ ] Create posts table\n- [ ] Add foreign key relationships\n- [ ] Create indices',
     },
     {
       GFS_ID: generateUUID(),
@@ -66,8 +60,6 @@ export function generateExampleIssues(): Issue[] {
       'Size': 'S',
       Description:
         'Document all REST API endpoints with examples and error codes',
-      'Acceptance Criteria':
-        '- [ ] Document /auth endpoints\n- [ ] Document /users endpoints\n- [ ] Include example requests/responses',
     },
   ];
 }

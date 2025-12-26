@@ -15,7 +15,6 @@ interface LegacyIssue {
   Scope: string;
   'Size': string;
   Description: string;
-  'Acceptance Criteria (Markdown task list)': string;
 }
 
 /** * Parses CSV content into lines, respecting multi-line quoted fields
@@ -144,7 +143,6 @@ export function migrateLegacyCSV(inputPath: string, outputPath: string): void {
     Scope: 'Scope',
     'Size': 'Size',
     Description: 'Description',
-    'Acceptance Criteria (Markdown task list)': 'Acceptance Criteria',
   };
 
   const headerIndices: Record<string, number> = {};
@@ -197,7 +195,6 @@ export function migrateLegacyCSV(inputPath: string, outputPath: string): void {
     'Scope',
     'Size',
     'Description',
-    'Acceptance Criteria',
   ];
 
   function escapeCSVField(value: string): string {

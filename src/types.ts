@@ -2,19 +2,18 @@
  * Core types for GitHub Issue Manager
  */
 
-// Note: Scope and TShirtSize are now dynamic per repo config
+// Note: Scope and Size are now dynamic per repo config
 export type Scope = string;
-export type TShirtSize = string;
+export type Size = string;
 
 export interface Issue {
   GFS_ID: string;
   Title: string;
   Milestone: string;
   Scope?: Scope;
-  'Size'?: TShirtSize;
+  'Size'?: Size;
   Priority?: string;
   Description: string;
-  'Acceptance Criteria'?: string; // Markdown task list
 }
 
 export interface ValidationResult {
@@ -56,8 +55,7 @@ export interface InternalIssueData {
   contentHash: string;
   title: string;
   description: string;
-  acceptanceCriteria: string;
   scope: Scope;
-  size: TShirtSize;
+  size: Size;
   milestone: string;
 }

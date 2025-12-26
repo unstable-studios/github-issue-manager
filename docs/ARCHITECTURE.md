@@ -42,7 +42,6 @@ Issues are hashed to detect changes:
 computeContentHash(issue: Issue): string {
   return hash({
     description,
-    acceptanceCriteria,
     scope,
     size,
     milestone
@@ -162,7 +161,6 @@ Fixed column order:
 4. Scope
 5. Size
 6. Description
-7. Acceptance Criteria
 
 Encoding rules:
 
@@ -183,8 +181,7 @@ Encoding rules:
       "Milestone": "string",
       "Scope": "enum",
       "Size": "enum",
-      "Description": "string",
-      "Acceptance Criteria": "string"
+      "Description": "string"
     }
   ]
 }
@@ -199,11 +196,6 @@ GitHub issues are formatted as:
 <!-- GFS-HASH: sha256 -->
 
 Description content
-
-## Acceptance Criteria
-
-- [ ] Task 1
-- [ ] Task 2
 ```
 
 ### Metadata Comments
@@ -221,14 +213,13 @@ interface Issue {
   Title: string; // Required
   Milestone: string; // Optional
   Scope: Scope; // Enum
-  Size: TShirtSize; // Enum
+  Size: Size; // Enum
   Description: string; // Markdown
-  "Acceptance Criteria": string; // Markdown task list
 }
 
 // Enums
 type Scope = "frontend" | "backend" | "devops" | "documentation" | "other";
-type TShirtSize = "XS" | "S" | "M" | "L" | "XL" | "XXL";
+type Size = "XS" | "S" | "M" | "L" | "XL" | "XXL";
 ```
 
 ## Validation Rules
@@ -245,7 +236,6 @@ type TShirtSize = "XS" | "S" | "M" | "L" | "XL" | "XXL";
 
 1. Duplicate Title
 2. Empty Milestone
-3. Acceptance Criteria not in task list format
 
 ## Idempotency Guarantees
 

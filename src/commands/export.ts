@@ -43,24 +43,21 @@ function fetchTrackedIssues(repo: string): GithubIssue[] {
 }
 
 /**
- * Parses acceptance criteria section from issue body
- */
-function parseAcceptanceCriteria(body: string): string {
-  const match = body.match(/## Acceptance Criteria\n([\s\S]*?)(?=\n## |$)/);
-  return match ? match[1].trim() : '';
-}
-
-/**
  * Parses description from issue body (removing metadata)
  */
 function parseDescription(body: string): string {
-  // Remove GFS markers and extract description
-  const cleaned = body
-    .replace(/<!-- GFS-ID:.*?-->\n?/i, '')
-    .replace(/<!-- GFS-HASH:.*?-->\n?/i, '');
+  if (!body) return '';
+  
+  // Remove GFS markers (handling various formats)
+  let cleaned = body
+    .replace(/<!--\s*GFS-ID:.*?-->\s*\n?/gi, '')
+    .replace(/<!--\s*GFS-HASH:.*?-->\s*\n?/gi, '');
 
-  const descMatch = cleaned.match(/([\s\S]*?)(?=\n## Acceptance Criteria|$)/);
-  return descMatch ? descMatch[1].trim() : '';
+  // Extract all content after removing metadata markers
+  if (cleaned) {
+    return cleaned.trim();
+  }
+  return '';
 }
 
 /**
@@ -72,22 +69,24 @@ function githubIssueToIssue(githubIssue: GithubIssue): Issue {
     throw new Error(`Issue #${githubIssue.number} missing GFS_ID`);
   }
 
-  // Extract scope from labels
+  // Ensure body is a string
+  const bodyText = githubIssue.body || '';
+
+  // Extract scope from labels (case-insensitive)
   const scopeLabel = (githubIssue.labels || []).find((l) =>
-    l.name.startsWith('scope:')
+    l.name.toLowerCase().startsWith('scope:')
   );
   const scope = scopeLabel
-    ? scopeLabel.name.replace('scope:', '')
+    ? scopeLabel.name.replace(/^scope:/i, '')
     : 'other';
 
-  // Extract size from labels
+  // Extract size from labels (case-insensitive)
   const sizeLabel = (githubIssue.labels || []).find((l) =>
-    l.name.startsWith('size:')
+    l.name.toLowerCase().startsWith('size:')
   );
-  const size = sizeLabel ? sizeLabel.name.replace('size:', '') : 'M';
+  const size = sizeLabel ? sizeLabel.name.replace(/^size:/i, '') : 'M';
 
-  const description = parseDescription(githubIssue.body || '');
-  const acceptanceCriteria = parseAcceptanceCriteria(githubIssue.body || '');
+  const description = parseDescription(bodyText);
 
   return {
     GFS_ID: gfsId,
@@ -96,7 +95,6 @@ function githubIssueToIssue(githubIssue: GithubIssue): Issue {
     Scope: scope as any,
     'Size': size as any,
     Description: description,
-    'Acceptance Criteria': acceptanceCriteria,
   };
 }
 
@@ -115,16 +113,21 @@ export function exportIssues(options: ExportOptions): Issue[] {
     return [];
   }
 
+  console.log(`Found ${trackedIssues.length} tracked issues. Parsing...`);
+
   const issues: Issue[] = trackedIssues.map((githubIssue) => {
     try {
       return githubIssueToIssue(githubIssue);
     } catch (error) {
-      console.error(`Error parsing issue #${githubIssue.number}: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`Error parsing issue #${githubIssue.number}: ${errorMsg}`);
+      console.error(`  Title: ${githubIssue.title}`);
+      console.error(`  Body preview: ${githubIssue.body ? githubIssue.body.substring(0, 100) : '(empty)'}`);
       throw error;
     }
   });
 
-  console.log(`Exported ${issues.length} issues`);
+  console.log(`Successfully exported ${issues.length} issues`);
 
   return issues;
 }

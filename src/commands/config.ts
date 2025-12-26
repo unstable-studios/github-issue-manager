@@ -85,7 +85,7 @@ export function createConfig(
   console.log('\nEdit this file to customize:');
   console.log('  - repository: GitHub owner/repo');
   console.log('  - scopes: (optional) Valid scope values for your project');
-  console.log('  - sizes: (optional) Valid t-shirt sizes');
+  console.log('  - sizes: (optional) Valid sizes (amount of work');
   console.log('  - priorities: (optional) Valid priority values');
   console.log('  - milestones: (optional) Valid milestone names');
   console.log('  - project: (optional) GitHub Projects (beta) configuration { owner, number }');

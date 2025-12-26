@@ -60,9 +60,9 @@ try {
   const fs = await import('fs');
   fs.writeFileSync(
     badCSV,
-    'GFS_ID,Title,Milestone,Scope,Size,Description,Acceptance Criteria\n' +
-      'invalid-uuid,Duplicate Title,v1.0.0,invalid-scope,INVALID-SIZE,Test,Test\n' +
-      'another-invalid,Duplicate Title,v1.0.0,frontend,M,Test2,Test2\n'
+    'GFS_ID,Title,Milestone,Scope,Size,Description\n' +
+      'invalid-uuid,Duplicate Title,v1.0.0,invalid-scope,INVALID-SIZE,Test\n' +
+      'another-invalid,Duplicate Title,v1.0.0,frontend,M,Test2\n'
   );
 
   try {

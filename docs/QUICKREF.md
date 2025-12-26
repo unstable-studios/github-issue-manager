@@ -28,16 +28,15 @@ gim migrate issues.csv --output migrated.csv
 
 ## Issue Fields
 
-| Field               | Required    | Type     | Valid Values (if configured)           |
-| ------------------- | ----------- | -------- | -------------------------------------- |
-| GFS_ID              | ✅          | UUID v4  | Auto-generated if missing with `--fix` |
-| Title               | ✅          | String   | Must be unique                         |
-| Milestone           | ⚠️ Optional | String   | Warned if empty                        |
-| Scope               | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
-| Size                | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
-| Priority            | ⚠️ Optional | Enum     | From `.gim-config.json` if provided    |
-| Description         | ⚠️ Optional | Text     | Can be multi-paragraph                 |
-| Acceptance Criteria | ⚠️ Optional | Markdown | Task list recommended: `- [ ] item`    |
+| Field       | Required    | Type    | Valid Values (if configured)           |
+| ----------- | ----------- | ------- | -------------------------------------- |
+| GFS_ID      | ✅          | UUID v4 | Auto-generated if missing with `--fix` |
+| Title       | ✅          | String  | Must be unique                         |
+| Milestone   | ⚠️ Optional | String  | Warned if empty                        |
+| Scope       | ⚠️ Optional | Enum    | From `.gim-config.json` if provided    |
+| Size        | ⚠️ Optional | Enum    | From `.gim-config.json` if provided    |
+| Priority    | ⚠️ Optional | Enum    | From `.gim-config.json` if provided    |
+| Description | ⚠️ Optional | Text    | Can be multi-paragraph                 |
 
 ## CSV Formatting Tips
 
@@ -67,8 +66,7 @@ here"
       "Scope": "frontend",
       "Size": "M",
       "Priority": "High",
-      "Description": "Description here",
-      "Acceptance Criteria": "- [ ] Task 1\n- [ ] Task 2"
+      "Description": "Description here"
     }
   ]
 }
@@ -99,23 +97,16 @@ here"
 
 - Duplicate Title
 - Empty Milestone
-- Acceptance Criteria not in task list format
 
 ## GitHub Issue Format
 
 Issues are stored in GitHub with metadata:
 
-```markdown
+````markdown
 <!-- GFS-ID: 123e4567-e89b-12d3-a456-426614174000 -->
 <!-- GFS-HASH: abc123def456... -->
 
-Description text goes here...
-
-## Acceptance Criteria
-
-- [ ] First requirement
-- [ ] Second requirement
-```
+Description text goes here...```
 
 Labels added (with `--auto-labels` when configured):
 
@@ -153,4 +144,4 @@ Labels added (with `--auto-labels` when configured):
 3. **Export regularly**: Keep a local backup with `export`
 4. **Use version control**: Track CSV/JSON files in git
 5. **Don't edit GFS-ID**: Never manually change GFS-ID in GitHub
-6. **Consistent formatting**: Use task lists for acceptance criteria
+````
