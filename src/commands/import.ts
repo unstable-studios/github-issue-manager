@@ -329,6 +329,35 @@ type ProjectFieldInfo = { id: string; name: string; dataType?: string; type?: st
 
 const projectFieldsCache = new Map<string, ProjectFieldInfo[]>();
 
+// Cache for project items to avoid repeated item-list calls per run
+const projectItemsCache = new Map<string, any[]>();
+
+function listProjectItems(owner: string, projectNumber: number, refresh = false): any[] {
+  const key = `${owner}/${projectNumber}`;
+  if (!refresh && projectItemsCache.has(key)) {
+    return projectItemsCache.get(key)!;
+  }
+  try {
+    const data = execGhJson([
+      'project',
+      'item-list',
+      String(projectNumber),
+      '--owner',
+      owner,
+      '--format',
+      'json',
+      '--limit',
+      '200'
+    ]);
+    const items = Array.isArray(data?.items) ? data.items : [];
+    projectItemsCache.set(key, items);
+    return items;
+  } catch (err) {
+    console.warn('[gh] Failed to fetch project items:', err instanceof Error ? err.message : String(err));
+    return projectItemsCache.get(key) || [];
+  }
+}
+
 function getProjectFields(owner: string, projectNumber: number, refresh = false): ProjectFieldInfo[] {
   const key = `${owner}/${projectNumber}`;
   if (!refresh && projectFieldsCache.has(key)) {
@@ -473,18 +502,7 @@ function ensureIssueInProjectAndSetFields(
 
   const findItemId = (): string | null => {
     try {
-      const data = execGhJson([
-        'project',
-        'item-list',
-        String(config.project!.number),
-        '--owner',
-        owner,
-        '--format',
-        'json',
-        '--limit',
-        '200'
-      ]);
-      const items = data?.items || [];
+      const items = listProjectItems(owner, config.project!.number);
       const hit = Array.isArray(items) ? items.find((it: any) => it?.content?.url === issueUrl) : null;
       return hit?.id || null;
     } catch (err) {
@@ -508,8 +526,12 @@ function ensureIssueInProjectAndSetFields(
         'json'
       ]);
       itemId = added?.id || added?.item?.id || null;
+      // Refresh cache after add to pick up the new item
+      listProjectItems(owner, config.project!.number, true);
     } catch (err) {
       console.warn('[gh] Failed to add item to project:', err instanceof Error ? err.message : String(err));
+      // On failure, try refreshing and finding again
+      listProjectItems(owner, config.project!.number, true);
       itemId = findItemId();
     }
   }
@@ -533,10 +555,10 @@ function ensureIssueInProjectAndSetFields(
         'project',
         'item-edit',
         String(config.project!.number),
+        '--project-id',
+        String(config.project!.id),
         '--id',
         itemId!,
-        '--owner',
-        owner,
         '--field-id',
         field.id,
         '--single-select-option-id',
