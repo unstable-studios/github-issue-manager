@@ -89,7 +89,7 @@ function execGhInput(args: string[], input: string): string {
   if (env.GH_TOKEN && !env.GITHUB_TOKEN) env.GITHUB_TOKEN = env.GH_TOKEN;
 
   if (VERBOSE) {
-    console.log('[gh]', args.join(' '), `(stdin ${input.length} bytes)`);
+    console.log('[gh] gh', args.join(' '), `(stdin ${input.length} bytes)`);
   }
   const maxAttempts = 3;
   let attempt = 0;
@@ -362,7 +362,7 @@ function getProjectFields(owner: string, projectNumber: number, refresh = false)
   }
 
   try {
-    const args = ['project', 'field-list', String(projectNumber), '--format', '--owner', owner, 'json', '--limit', '100'];
+    const args = ['project', 'field-list', String(projectNumber), '--format', 'json', '--owner', owner, '--limit', '100'];
 
     const data = execGhJson(args);
     if (VERBOSE) console.log('[gh] Project fields data:', JSON.stringify(data));
