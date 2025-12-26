@@ -179,10 +179,7 @@ const projectListCache = new Map<string, ProjectInfo[]>();
 
 function getProjectId(owner: string, number: number): string | null {
   try {
-    const args = ['project', 'view', String(number), '--format', 'json'];
-    if (owner && owner !== '@me') {
-      args.push('--owner', owner);
-    }
+    const args = ['project', 'view', String(number), '--format', 'json', '--owner', owner];
     const data = execGhJson(args);
     return data?.id || null;
   } catch (err) {
@@ -365,10 +362,8 @@ function getProjectFields(owner: string, projectNumber: number, refresh = false)
   }
 
   try {
-    const args = ['project', 'field-list', String(projectNumber), '--format', 'json', '--limit', '100'];
-    if (owner && owner !== '@me') {
-      args.push('--owner', owner);
-    }
+    const args = ['project', 'field-list', String(projectNumber), '--format', '--owner', owner, 'json', '--limit', '100'];
+
     const data = execGhJson(args);
     if (VERBOSE) console.log('[gh] Project fields data:', JSON.stringify(data));
     const fields = data?.fields || [];
@@ -396,10 +391,7 @@ function ensureSingleSelectField(owner: string, projectNumber: number, name: str
 
   // If field doesn't exist, create it, then refresh field list once
   if (!fieldInfo) {
-    const args = ['project', 'field-create', String(projectNumber), '--name', name, '--data-type', 'SINGLE_SELECT', '--format', 'json', '--single-select-options'];
-    if (owner && owner !== '@me') {
-      args.push('--owner', owner);
-    }
+    const args = ['project', 'field-create', String(projectNumber), '--name', name, '--owner', owner, '--data-type', 'SINGLE_SELECT', '--format', 'json', '--single-select-options'];
     args.push(desiredOptions.length > 0 ? desiredOptions.join(',') : 'default');
 
     let createError: unknown;
