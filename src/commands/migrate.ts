@@ -10,13 +10,26 @@ const HEADERS: (keyof Issue)[] = [
   'Title',
   'Milestone',
   'Scope',
-  'T-Shirt Size',
+  'Size',
   'Priority',
   'Description',
-  'Acceptance Criteria',
+
 ];
 
-type FieldKey = 'Scope' | 'T-Shirt Size' | 'Priority';
+function normalizeHeader(header: string): keyof Issue | null {
+  const h = header.trim().toLowerCase();
+  if (h === 'gfs_id' || h === 'gfs-id' || h === 'gfs id') return 'GFS_ID';
+  if (h === 'title') return 'Title';
+  if (h === 'milestone') return 'Milestone';
+  if (h === 'scope') return 'Scope';
+  if (h === 'size' ) return 'Size';
+  if (h === 'priority') return 'Priority';
+  if (h === 'description') return 'Description';
+  if (h.startsWith('acceptance criteria')) return 'Acceptance Criteria';
+  return null;
+}
+
+type FieldKey = 'Scope' | 'Size' | 'Priority';
 
 interface FieldConfig {
   field: FieldKey;
@@ -27,7 +40,7 @@ interface FieldConfig {
 
 const FIELD_CONFIGS: FieldConfig[] = [
   { field: 'Scope', label: 'Scope', listKey: 'scopes', aliasKey: 'scopeAliases' },
-  { field: 'T-Shirt Size', label: 'T-Shirt Size', listKey: 'sizes', aliasKey: 'sizeAliases' },
+  { field: 'Size', label: 'Size', listKey: 'sizes', aliasKey: 'sizeAliases' },
   { field: 'Priority', label: 'Priority', listKey: 'priorities', aliasKey: 'priorityAliases' },
 ];
 
@@ -242,19 +255,23 @@ function parseIssues(inputPath: string): Issue[] {
   const headerFields = parseCSVLine(lines[0]);
   const headerIndices: Record<string, number> = {};
   headerFields.forEach((header, idx) => {
-    headerIndices[header] = idx;
+    const mapped = normalizeHeader(header);
+    if (mapped) {
+      headerIndices[mapped] = idx;
+    }
   });
 
   const issues: Issue[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const fields = parseCSVLine(lines[i]);
+
     const issue: Partial<Issue> = {};
 
     HEADERS.forEach((header) => {
       const idx = headerIndices[header];
-      if (idx !== undefined && fields[idx] !== undefined) {
-        issue[header] = fields[idx];
+      if (idx !== undefined && idx < fields.length) {
+        issue[header] = fields[idx] ?? '';
       }
     });
 
@@ -296,7 +313,7 @@ export async function migrateWithConfig(
 
   const cacheByField: Record<FieldKey, Map<string, string>> = {
     Scope: new Map(),
-    'T-Shirt Size': new Map(),
+    'Size': new Map(),
     Priority: new Map(),
   } as const;
 
