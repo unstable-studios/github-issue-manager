@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { resolve, extname } from 'path';
 import { generateExampleIssues } from './commands/init.js';
 import { validateIssues, fixIssues } from './commands/lint.js';
-import { importIssues, setGhVerbose } from './commands/import.js';
+import { importIssues, setGhVerbose, ensureProjectConfiguredAsync } from './commands/import.js';
 import { exportIssues } from './commands/export.js';
 import { createConfig, validateConfig, loadConfig } from './commands/config.js';
 import { migrateWithConfig } from './commands/migrate.js';
@@ -36,7 +36,7 @@ async function main() {
         break;
 
       case 'import':
-        handleImport(args.slice(1));
+        await handleImport(args.slice(1));
         break;
 
       case 'export':
@@ -177,7 +177,7 @@ function handleLint(args: string[]) {
   }
 }
 
-function handleImport(args: string[]) {
+async function handleImport(args: string[]) {
   if (args.length === 0) {
     console.error(
       'Usage: import <file> [--repo <owner/repo>] [--config path] [--dry-run] [--create-only] [--update-only] [--auto-labels] [--auto-milestones]'
@@ -256,6 +256,9 @@ function handleImport(args: string[]) {
     setGhVerbose(true);
   }
 
+  // Ensure project is configured before import (handles async prompt)
+  const configWithProject = await ensureProjectConfiguredAsync(config, repo);
+
   const result = importIssues(issues, {
     dryRun,
     createOnly,
@@ -263,7 +266,7 @@ function handleImport(args: string[]) {
     autoCreateLabels,
     autoCreateMilestones,
     repo,
-  });
+  }, configWithProject);
 
   console.log('\n📊 Import Summary:');
   console.log(`  Created: ${result.created}`);

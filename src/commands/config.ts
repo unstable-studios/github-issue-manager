@@ -33,6 +33,14 @@ export function loadConfig(configPath?: string): RepoConfig {
 }
 
 /**
+ * Saves repo configuration to file
+ */
+export function saveConfig(config: RepoConfig, configPath?: string): void {
+  const path = configPath || CONFIG_FILE;
+  writeFileSync(path, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+/**
  * Creates a new config file with example values
  */
 export function createConfig(
@@ -80,6 +88,7 @@ export function createConfig(
   console.log('  - sizes: (optional) Valid t-shirt sizes');
   console.log('  - priorities: (optional) Valid priority values');
   console.log('  - milestones: (optional) Valid milestone names');
+  console.log('  - project: (optional) GitHub Projects (beta) configuration { owner, number }');
 }
 
 /**
@@ -108,6 +117,12 @@ export function validateConfig(configPath?: string): void {
 
     if (config.milestones && config.milestones.length > 0) {
       console.log(`Milestones: ${config.milestones.join(', ')}`);
+    }
+
+    if (config.project) {
+      console.log(
+        `Project: owner=${config.project.owner}, number=${config.project.number}${config.project.id ? `, id=${config.project.id}` : ''}`
+      );
     }
   } catch (error) {
     console.error(

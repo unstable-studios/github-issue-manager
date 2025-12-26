@@ -1,4 +1,7 @@
 import { spawnSync } from 'child_process';
+import * as readline from 'readline';
+import { loadConfig, saveConfig } from '../commands/config.js';
+import type { RepoConfig } from '../config.js';
 import type {
   Issue,
   ImportOptions,
@@ -22,6 +25,22 @@ export function setGhVerbose(v: boolean) {
 /**
  * Executes a gh CLI command (no shell) and returns stdout
  */
+function sleep(ms: number) {
+  const sab = new SharedArrayBuffer(4);
+  const ia = new Int32Array(sab);
+  Atomics.wait(ia, 0, 0, ms);
+}
+
+function isRateLimitMessage(text: string): boolean {
+  const t = text.toLowerCase();
+  return (
+    t.includes('rate limit') ||
+    t.includes('secondary rate limit') ||
+    t.includes('http 429') ||
+    t.includes('abuse detection')
+  );
+}
+
 function execGh(args: string[]): string {
   const env = { ...process.env } as NodeJS.ProcessEnv;
   if (env.GITHUB_TOKEN && !env.GH_TOKEN) env.GH_TOKEN = env.GITHUB_TOKEN;
@@ -31,22 +50,36 @@ function execGh(args: string[]): string {
     console.log('[gh]', args.join(' '));
   }
 
-  const result = spawnSync('gh', args, {
-    encoding: 'utf-8',
-    env,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  const maxAttempts = 3;
+  let attempt = 0;
+  let lastErr: string = '';
+  while (attempt < maxAttempts) {
+    const result = spawnSync('gh', args, {
+      encoding: 'utf-8',
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
 
-  if (result.error) {
-    throw new Error(`GitHub CLI error: ${result.error.message}`);
-  }
-  if (result.status !== 0) {
-    const stderr = result.stderr?.toString() ?? '';
-    const stdout = result.stdout?.toString() ?? '';
-    throw new Error(`GitHub CLI exited with ${result.status}: ${stderr || stdout}`);
-  }
+    if (result.error) {
+      lastErr = `GitHub CLI error: ${result.error.message}`;
+    } else if (result.status !== 0) {
+      const stderr = result.stderr?.toString() ?? '';
+      const stdout = result.stdout?.toString() ?? '';
+      lastErr = `${stderr || stdout}`;
+    } else {
+      return (result.stdout || '').toString().trim();
+    }
 
-  return (result.stdout || '').toString().trim();
+    if (isRateLimitMessage(lastErr) && attempt < maxAttempts - 1) {
+      const backoffMs = 1000 * Math.pow(2, attempt);
+      console.warn(`[gh] Rate limited; retrying in ${backoffMs}ms (attempt ${attempt + 2}/${maxAttempts})`);
+      sleep(backoffMs);
+      attempt++;
+      continue;
+    }
+    break;
+  }
+  throw new Error(`GitHub CLI exited with error: ${lastErr}`);
 }
 
 function execGhInput(args: string[], input: string): string {
@@ -58,23 +91,37 @@ function execGhInput(args: string[], input: string): string {
   if (VERBOSE) {
     console.log('[gh]', args.join(' '), `(stdin ${input.length} bytes)`);
   }
+  const maxAttempts = 3;
+  let attempt = 0;
+  let lastErr: string = '';
+  while (attempt < maxAttempts) {
+    const result = spawnSync('gh', args, {
+      encoding: 'utf-8',
+      env,
+      input,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
 
-  const result = spawnSync('gh', args, {
-    encoding: 'utf-8',
-    env,
-    input,
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
+    if (result.error) {
+      lastErr = `GitHub CLI error: ${result.error.message}`;
+    } else if (result.status !== 0) {
+      const stderr = result.stderr?.toString() ?? '';
+      const stdout = result.stdout?.toString() ?? '';
+      lastErr = `${stderr || stdout}`;
+    } else {
+      return (result.stdout || '').toString().trim();
+    }
 
-  if (result.error) {
-    throw new Error(`GitHub CLI error: ${result.error.message}`);
+    if (isRateLimitMessage(lastErr) && attempt < maxAttempts - 1) {
+      const backoffMs = 1000 * Math.pow(2, attempt);
+      console.warn(`[gh] Rate limited; retrying in ${backoffMs}ms (attempt ${attempt + 2}/${maxAttempts})`);
+      sleep(backoffMs);
+      attempt++;
+      continue;
+    }
+    break;
   }
-  if (result.status !== 0) {
-    const stderr = result.stderr?.toString() ?? '';
-    const stdout = result.stdout?.toString() ?? '';
-    throw new Error(`GitHub CLI exited with ${result.status}: ${stderr || stdout}`);
-  }
-  return (result.stdout || '').toString().trim();
+  throw new Error(`GitHub CLI exited with error: ${lastErr}`);
 }
 
 function execGhJson(args: string[]): any {
@@ -83,30 +130,419 @@ function execGhJson(args: string[]): any {
   if (env.GH_TOKEN && !env.GITHUB_TOKEN) env.GITHUB_TOKEN = env.GH_TOKEN;
 
   if (VERBOSE) {
-    console.log('[gh]', args.join(' '));
+    console.log('[gh] gh', args.join(' '));
+  }
+  const maxAttempts = 3;
+  let attempt = 0;
+  let lastErr: string = '';
+  while (attempt < maxAttempts) {
+    const result = spawnSync('gh', args, {
+      encoding: 'utf-8',
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    if (result.error) {
+      lastErr = `GitHub CLI error: ${result.error.message}`;
+    } else if (result.status !== 0) {
+      const stderr = result.stderr?.toString() ?? '';
+      const stdout = result.stdout?.toString() ?? '';
+      lastErr = `${stderr || stdout}`;
+    } else {
+      const out = (result.stdout || '').toString();
+      try {
+        return JSON.parse(out);
+      } catch {
+        return out;
+      }
+    }
+
+    if (isRateLimitMessage(lastErr) && attempt < maxAttempts - 1) {
+      const backoffMs = 1000 * Math.pow(2, attempt);
+      console.warn(`[gh] Rate limited; retrying in ${backoffMs}ms (attempt ${attempt + 2}/${maxAttempts})`);
+      sleep(backoffMs);
+      attempt++;
+      continue;
+    }
+    break;
+  }
+  throw new Error(`GitHub CLI exited with error: ${lastErr}`);
+}
+
+function repoOwner(repo: string): string {
+  return repo.split('/')[0];
+}
+
+type ProjectInfo = { id: string; title: string; number: number; closed: boolean; ownerArg: string };
+
+const projectListCache = new Map<string, ProjectInfo[]>();
+
+function getProjectId(owner: string, number: number): string | null {
+  try {
+    const data = execGhJson(['project', 'view', String(number), '--format', 'json']);
+    return data?.id || null;
+  } catch (err) {
+    console.warn(`[gh] Failed to get project id for ${owner}#${number}:`, err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
+function listProjects(owner: string, refresh = false): ProjectInfo[] {
+  if (!refresh && projectListCache.has(owner)) {
+    return projectListCache.get(owner)!;
+  }
+  const projects: ProjectInfo[] = [];
+  const seen = new Set<string>();
+  
+  // Try to get org projects
+  try {
+    const orgData = execGhJson(['project', 'list', '--format', 'json', '--limit', '100']);
+    const orgProjects = orgData?.projects || [];
+    if (Array.isArray(orgProjects) && orgProjects.length > 0) {
+      orgProjects.forEach((p: any) => {
+        const key = `${p.number}:${p.title}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          projects.push({
+            id: p.id || '',
+            title: p.title || '',
+            number: p.number || 0,
+            closed: p.closed || false,
+            ownerArg: owner
+          });
+        }
+      });
+    }
+  } catch (err) {
+    console.warn(`[gh] Could not fetch projects for owner ${owner}:`, err instanceof Error ? err.message : String(err));
+  }
+  
+  // Also get user's own projects
+  try {
+    const userData = execGhJson(['project', 'list', '--format', 'json', '--limit', '100']);
+    const userProjects = userData?.projects || [];
+    if (Array.isArray(userProjects) && userProjects.length > 0) {
+      userProjects.forEach((p: any) => {
+        const key = `${p.number}:${p.title}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          projects.push({
+            id: p.id || '',
+            title: p.title || '',
+            number: p.number || 0,
+            closed: p.closed || false,
+            ownerArg: '@me'
+          });
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('[gh] Could not fetch user projects:', err instanceof Error ? err.message : String(err));
+  }
+  
+  projectListCache.set(owner, projects);
+  return projects;
+}
+
+function promptSelectProject(projects: ProjectInfo[]): Promise<ProjectInfo | null> {
+  if (projects.length === 0) {
+    console.warn('No projects found for this owner/account.');
+    return Promise.resolve(null);
+  }
+  
+  if (!process.stdin.isTTY) {
+    throw new Error('Project selection requires a TTY (run in a terminal).');
   }
 
-  const result = spawnSync('gh', args, {
-    encoding: 'utf-8',
-    env,
-    stdio: ['pipe', 'pipe', 'pipe'],
+  console.log('\nSelect a GitHub Project to use:');
+  console.log('Use ↑/↓ to choose, Enter to confirm, Ctrl+C to abort\n');
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  readline.emitKeypressEvents(process.stdin, rl);
+  const wasRaw = process.stdin.isRaw;
+  if (!wasRaw) process.stdin.setRawMode?.(true);
+
+  let index = 0;
+  const numLines = projects.length;
+
+  const render = () => {
+    // Move cursor up to start of options and clear down
+    readline.moveCursor(process.stdout, 0, -numLines);
+    readline.clearScreenDown(process.stdout);
+    projects.forEach((p, i) => {
+      const prefix = i === index ? '›' : ' ';
+      const closedTag = p.closed ? ' [closed]' : '';
+      console.log(`${prefix} ${p.title} (#${p.number})${closedTag}`);
+    });
+  };
+
+  // Initial render
+  projects.forEach((p, i) => {
+    const prefix = i === index ? '›' : ' ';
+    const closedTag = p.closed ? ' [closed]' : '';
+    console.log(`${prefix} ${p.title} (#${p.number})${closedTag}`);
   });
 
-  if (result.error) {
-    throw new Error(`GitHub CLI error: ${result.error.message}`);
-  }
-  if (result.status !== 0) {
-    const stderr = result.stderr?.toString() ?? '';
-    const stdout = result.stdout?.toString() ?? '';
-    throw new Error(`GitHub CLI exited with ${result.status}: ${stderr || stdout}`);
+  return new Promise<ProjectInfo | null>((resolve) => {
+    const onKeypress = (_str: string, key: readline.Key) => {
+      if (key.name === 'up') {
+        index = (index - 1 + projects.length) % projects.length;
+        render();
+      } else if (key.name === 'down') {
+        index = (index + 1) % projects.length;
+        render();
+      } else if (key.name === 'return') {
+        cleanup();
+        resolve(projects[index]);
+      } else if (key.name === 'c' && key.ctrl) {
+        cleanup();
+        process.exit(1);
+      }
+    };
+
+    const cleanup = () => {
+      process.stdin.off('keypress', onKeypress);
+      if (!wasRaw) process.stdin.setRawMode?.(false);
+      rl.close();
+      console.log();
+    };
+
+    process.stdin.on('keypress', onKeypress);
+  });
+}
+
+function getProjectByNumber(owner: string, number: number): ProjectInfo | null {
+  // List all projects and find by number
+  const projects = listProjects(owner);
+  return projects.find(p => p.number === number) || null;
+}
+
+type ProjectFieldInfo = { id: string; name: string; dataType?: string; type?: string; options?: { id: string; name: string }[] };
+
+const projectFieldsCache = new Map<string, ProjectFieldInfo[]>();
+
+function getProjectFields(owner: string, projectNumber: number, refresh = false): ProjectFieldInfo[] {
+  const key = `${owner}/${projectNumber}`;
+  if (!refresh && projectFieldsCache.has(key)) {
+    return projectFieldsCache.get(key)!;
   }
 
-  const out = (result.stdout || '').toString();
   try {
-    return JSON.parse(out);
-  } catch {
-    return out;
+    const args = ['project', 'field-list', String(projectNumber)];
+    args.push('--format', 'json', '--limit', '100');
+    const data = execGhJson(args);
+    if (VERBOSE) console.log('[gh] Project fields data:', JSON.stringify(data));
+    const fields = data?.fields || [];
+    const mapped = Array.isArray(fields)
+      ? fields.map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          dataType: f.dataType || f.type,
+          type: f.type,
+          options: f.options
+        }))
+      : [];
+    projectFieldsCache.set(key, mapped);
+    return mapped;
+  } catch (err) {
+    console.warn(`[gh] Failed to fetch project fields for ${owner}/${projectNumber}:`, err instanceof Error ? err.message : String(err));
+    return projectFieldsCache.get(key) || [];
   }
+}
+
+function ensureSingleSelectField(owner: string, projectNumber: number, name: string, desiredOptions: string[]): { id: string; options: Record<string, string> } {
+  const fields = getProjectFields(owner, projectNumber);
+  let fieldInfo = fields.find((f) => f.name === name);
+
+  if (!fieldInfo) {
+    const args = ['project', 'field-create', String(projectNumber)];
+    args.push(
+      '--name',
+      name,
+      '--data-type',
+      'SINGLE_SELECT',
+      '--format',
+      'json',
+      '--single-select-options'
+    );
+    args.push(desiredOptions.length > 0 ? desiredOptions.join(',') : 'default');
+
+    let createError: unknown;
+    try {
+      const result = execGhJson(args);
+      fieldInfo = { id: result.id, name, dataType: 'SINGLE_SELECT', options: [] };
+      getProjectFields(owner, projectNumber, true);
+    } catch (err) {
+      createError = err;
+      // If creation failed, refresh and see if it now exists (upsert semantics)
+      const refreshed = getProjectFields(owner, projectNumber, true);
+      fieldInfo = refreshed.find((f) => f.name === name);
+      if (!fieldInfo) {
+        const msg = createError instanceof Error ? createError.message : String(createError);
+        throw new Error(`Failed to upsert field ${name}: ${msg}`);
+      }
+    }
+  }
+
+  // Single fetch to map option IDs
+  const withOptions = getProjectFields(owner, projectNumber, true).find((f) => f.name === name);
+  const optionMap: Record<string, string> = {};
+  if (withOptions?.options) {
+    for (const o of withOptions.options) {
+      optionMap[o.name] = o.id;
+    }
+  }
+
+  return { id: fieldInfo?.id || withOptions?.id || '', options: optionMap };
+}
+
+export async function ensureProjectConfiguredAsync(configOrPath?: RepoConfig | string, repo?: string): Promise<RepoConfig> {
+  let config: RepoConfig;
+  if (typeof configOrPath === 'string') {
+    try {
+      config = loadConfig(configOrPath);
+    } catch {
+      config = { version: '1.0.0', repository: repo || '' } as RepoConfig;
+    }
+  } else if (configOrPath) {
+    config = configOrPath;
+  } else {
+    try {
+      config = loadConfig();
+    } catch {
+      config = { version: '1.0.0', repository: repo || '' } as RepoConfig;
+    }
+  }
+
+  if (!repo) {
+    repo = config.repository;
+  }
+  
+  const owner = repoOwner(repo);
+  let project = config.project;
+  if (!project || !project.number) {
+    const projects = listProjects(owner);
+    const sel = await promptSelectProject(projects);
+    if (sel) {
+      const projId = sel.id || getProjectId(sel.ownerArg, sel.number) || undefined;
+      config.project = { owner: sel.ownerArg, number: sel.number, id: projId, fields: config.project?.fields };
+      saveConfig(config);
+    }
+  }
+  // Ensure id is populated
+  if (config.project && !config.project.id) {
+    const projId = getProjectId(config.project.owner || owner, config.project.number) || undefined;
+    config.project = { owner: config.project.owner || owner, number: config.project.number, id: projId, fields: config.project.fields };
+    saveConfig(config);
+  }
+  // Ensure fields and options
+  if (config.project?.id && config.project?.number) {
+    const owner = config.project.owner || repoOwner(repo);
+    const scopeList = config.scopes || [];
+    const sizeList = config.sizes || [];
+    const priorityList = config.priorities || [];
+    const scopeField = ensureSingleSelectField(owner, config.project.number, 'Scope', scopeList);
+    const sizeField = ensureSingleSelectField(owner, config.project.number, 'Size', sizeList);
+    const priorityField = ensureSingleSelectField(owner, config.project.number, 'Priority', priorityList);
+    config.project.fields = {
+      scope: { id: scopeField.id, options: scopeField.options },
+      size: { id: sizeField.id, options: sizeField.options },
+      priority: { id: priorityField.id, options: priorityField.options },
+    };
+    saveConfig(config);
+  }
+  return config;
+}
+
+function ensureIssueInProjectAndSetFields(
+  repo: string,
+  issueNumber: number,
+  issue: Issue,
+  config: RepoConfig
+): void {
+  if (!config.project?.number || !config.project?.id) return;
+  const owner = config.project.owner || repoOwner(repo);
+  const issueUrl = `https://github.com/${repo}/issues/${issueNumber}`;
+
+  const findItemId = (): string | null => {
+    try {
+      const data = execGhJson([
+        'project',
+        'item-list',
+        '--project-id',
+        String(config.project!.id),
+        '--format',
+        'json',
+        '--limit',
+        '200'
+      ]);
+      const items = data?.items || [];
+      const hit = Array.isArray(items) ? items.find((it: any) => it?.content?.url === issueUrl) : null;
+      return hit?.id || null;
+    } catch (err) {
+      console.warn('[gh] Failed to list project items:', err instanceof Error ? err.message : String(err));
+      return null;
+    }
+  };
+
+  let itemId = findItemId();
+  if (!itemId) {
+    try {
+      const added = execGhJson([
+        'project',
+        'item-add',
+        '--project-id',
+        String(config.project!.id),
+        '--url',
+        issueUrl,
+        '--format',
+        'json'
+      ]);
+      itemId = added?.id || added?.item?.id || null;
+    } catch (err) {
+      console.warn('[gh] Failed to add item to project:', err instanceof Error ? err.message : String(err));
+      itemId = findItemId();
+    }
+  }
+  if (!itemId) return;
+
+  const getIssueSize = (iss: Issue): string => {
+    // Prefer 'Size' column, fall back to legacy 'Size'
+    const valA = (iss as any).Size;
+    const valB = (iss as any)['Size'];
+    return (valA && String(valA)) || (valB && String(valB)) || '';
+  };
+
+  const setField = (fieldKey: 'scope' | 'size' | 'priority', value: string) => {
+    if (!value || !config.project?.fields) return;
+    const field = config.project.fields[fieldKey];
+    if (!field?.id) return;
+    const optionId = field.options?.[value];
+    if (!optionId) return;
+    try {
+      execGh([
+        'project',
+        'item-edit',
+        '--id',
+        itemId!,
+        '--project-id',
+        String(config.project!.id),
+        '--field-id',
+        field.id,
+        '--single-select-option-id',
+        optionId
+      ]);
+    } catch (err) {
+      console.warn(`[gh] Failed to set ${fieldKey}=${value}:`, err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  if (issue.Scope) setField('scope', issue.Scope);
+  {
+    const sizeVal = getIssueSize(issue);
+    if (sizeVal) setField('size', sizeVal);
+  }
+  if (issue.Priority) setField('priority', issue.Priority);
 }
 
 function listMilestones(repo: string): { title: string; number: number }[] {
@@ -121,7 +557,8 @@ function createMilestone(repo: string, title: string): { title: string; number: 
     // Use -F to send JSON body fields; -f is for query params
     const data = execGhJson(['api', `repos/${repo}/milestones`, '-X', 'POST', '-F', `title=${title}`]);
     return { title: data.title, number: data.number };
-  } catch {
+  } catch (err) {
+    console.warn(`[gh] Failed to create milestone "${title}":`, err instanceof Error ? err.message : String(err));
     return null;
   }
 }
@@ -367,10 +804,27 @@ function addLabelsToIssue(
  */
 export function importIssues(
   issues: Issue[],
-  options: ImportOptions
+  options: ImportOptions,
+  config?: RepoConfig
 ): { created: number; updated: number; skipped: number } {
   const { dryRun, createOnly, updateOnly, autoCreateLabels, autoCreateMilestones } = options;
   const repo = options.repo;
+  
+  if (!config) {
+    try {
+      config = loadConfig();
+    } catch {
+      config = { version: '1.0.0', repository: repo } as RepoConfig;
+    }
+  }
+
+  // Prime project list cache at the start of the run
+  try {
+    const owner = repoOwner(repo);
+    listProjects(owner);
+  } catch (e) {
+    console.warn('[gh] Unable to prime project list cache:', e instanceof Error ? e.message : String(e));
+  }
 
   let created = 0;
   let updated = 0;
@@ -409,8 +863,12 @@ export function importIssues(
         }
         updateGithubIssue(repo, existing.number, issue, dryRun);
 
+        // Link/update in project and set custom fields
+        ensureIssueInProjectAndSetFields(repo, existing.number, issue, config);
+
         if (autoCreateLabels) {
-          const labels = [`scope:${issue.Scope}`, `size:${issue['T-Shirt Size']}`];
+          const sizeVal = (issue as any).Size || (issue as any)['Size'];
+          const labels = [`scope:${issue.Scope}`, `size:${sizeVal || ''}`];
           addLabelsToIssue(repo, existing.number, labels, dryRun);
         }
       } else {
@@ -436,8 +894,12 @@ export function importIssues(
         }
         const result = createGithubIssue(repo, issue, dryRun);
 
+        // Link/update in project and set custom fields
+        ensureIssueInProjectAndSetFields(repo, result.number, issue, config);
+
         if (autoCreateLabels) {
-          const labels = [`scope:${issue.Scope}`, `size:${issue['T-Shirt Size']}`];
+          const sizeVal = (issue as any).Size || (issue as any)['Size'];
+          const labels = [`scope:${issue.Scope}`, `size:${sizeVal || ''}`];
           addLabelsToIssue(repo, result.number, labels, dryRun);
         }
       } else {

@@ -13,6 +13,16 @@ export interface RepoConfig {
   sizeAliases?: Record<string, string>; // Optional mapping of legacy size -> canonical size
   priorityAliases?: Record<string, string>; // Optional mapping of legacy priority -> canonical priority
   customFields?: Record<string, any>; // Future extensibility
+  project?: {
+    owner: string; // project owner (defaults to repo owner)
+    number: number; // project number (as shown in GitHub UI)
+    id?: string; // project ID
+    fields?: {
+      scope?: { id: string; options?: Record<string, string> };
+      size?: { id: string; options?: Record<string, string> };
+      priority?: { id: string; options?: Record<string, string> };
+    };
+  };
 }
 
 export const DEFAULT_CONFIG: RepoConfig = {
@@ -24,4 +34,5 @@ export const DEFAULT_CONFIG: RepoConfig = {
   scopeAliases: {},
   sizeAliases: {},
   priorityAliases: {},
+  project: undefined,
 };
