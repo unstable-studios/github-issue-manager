@@ -11,7 +11,7 @@ export interface Issue {
   Title: string;
   Milestone: string;
   Scope?: Scope;
-  'Size'?: Size;
+  Size?: Size;
   Priority?: string;
   Description: string;
 }

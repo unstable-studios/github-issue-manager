@@ -536,9 +536,9 @@ function ensureIssueInProjectAndSetFields(
   if (!itemId) return;
 
   const getIssueSize = (iss: Issue): string => {
-    // Prefer 'Size' column, fall back to legacy 'Size'
+    // Prefer Size column
     const valA = (iss as any).Size;
-    const valB = (iss as any)['Size'];
+    const valB = (iss as any).Size;
     return (valA && String(valA)) || (valB && String(valB)) || '';
   };
 
@@ -886,7 +886,10 @@ export function importIssues(
 
         if (autoCreateLabels) {
           const sizeVal = (issue as any).Size || (issue as any)['Size'];
-          const labels = [`scope:${issue.Scope}`, `size:${sizeVal || ''}`];
+          const labels = [`scope:${issue.Scope || 'other'}`, `size:${sizeVal || 'M'}`];
+          if (issue.Priority) {
+            labels.push(`priority:${issue.Priority}`);
+          }
           addLabelsToIssue(repo, existing.number, labels, dryRun);
         }
       } else {
@@ -917,7 +920,10 @@ export function importIssues(
 
         if (autoCreateLabels) {
           const sizeVal = (issue as any).Size || (issue as any)['Size'];
-          const labels = [`scope:${issue.Scope}`, `size:${sizeVal || ''}`];
+          const labels = [`scope:${issue.Scope || 'other'}`, `size:${sizeVal || 'M'}`];
+          if (issue.Priority) {
+            labels.push(`priority:${issue.Priority}`);
+          }
           addLabelsToIssue(repo, result.number, labels, dryRun);
         }
       } else {

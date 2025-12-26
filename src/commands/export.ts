@@ -1,6 +1,8 @@
 import { execSync } from 'child_process';
 import type { Issue, ExportOptions, GithubIssue } from '../types.js';
+import type { RepoConfig } from '../config.js';
 import { extractGfsId } from '../utils/uuid.js';
+import { loadConfig } from './config.js';
 
 /**
  * Executes a gh CLI command and returns the output
@@ -63,7 +65,7 @@ function parseDescription(body: string): string {
 /**
  * Converts GitHub issue to internal Issue format
  */
-function githubIssueToIssue(githubIssue: GithubIssue): Issue {
+function githubIssueToIssue(githubIssue: GithubIssue, config: RepoConfig): Issue {
   const gfsId = extractGfsId(githubIssue.body || '');
   if (!gfsId) {
     throw new Error(`Issue #${githubIssue.number} missing GFS_ID`);
@@ -78,24 +80,37 @@ function githubIssueToIssue(githubIssue: GithubIssue): Issue {
   );
   const scope = scopeLabel
     ? scopeLabel.name.replace(/^scope:/i, '')
-    : 'other';
+    : undefined;
 
   // Extract size from labels (case-insensitive)
   const sizeLabel = (githubIssue.labels || []).find((l) =>
     l.name.toLowerCase().startsWith('size:')
   );
-  const size = sizeLabel ? sizeLabel.name.replace(/^size:/i, '') : 'M';
+  const size = sizeLabel ? sizeLabel.name.replace(/^size:/i, '') : undefined;
+
+  // Extract priority from labels (case-insensitive)
+  const priorityLabel = (githubIssue.labels || []).find((l) =>
+    l.name.toLowerCase().startsWith('priority:')
+  );
+  const priority = priorityLabel
+    ? priorityLabel.name.replace(/^priority:/i, '')
+    : undefined;
 
   const description = parseDescription(bodyText);
 
-  return {
+  const issue: Issue = {
     GFS_ID: gfsId,
     Title: githubIssue.title,
     Milestone: githubIssue.milestone?.title || '',
-    Scope: scope as any,
-    'Size': size as any,
     Description: description,
   };
+
+  // Add optional fields if they have values
+  if (scope) issue.Scope = scope;
+  if (size) issue.Size = size;
+  if (priority) issue.Priority = priority;
+
+  return issue;
 }
 
 /**
@@ -105,6 +120,14 @@ export function exportIssues(options: ExportOptions): Issue[] {
   const repo = options.repo;
 
   console.log(`Exporting tracked issues from ${repo}...`);
+
+  // Load config to get field definitions
+  let config: RepoConfig | undefined;
+  try {
+    config = loadConfig(repo);
+  } catch (error) {
+    console.warn(`Could not load config for ${repo}, using defaults`);
+  }
 
   const trackedIssues = fetchTrackedIssues(repo);
 
@@ -117,7 +140,7 @@ export function exportIssues(options: ExportOptions): Issue[] {
 
   const issues: Issue[] = trackedIssues.map((githubIssue) => {
     try {
-      return githubIssueToIssue(githubIssue);
+      return githubIssueToIssue(githubIssue, config || { version: '1.0.0', repository: repo });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`Error parsing issue #${githubIssue.number}: ${errorMsg}`);

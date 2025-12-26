@@ -10,7 +10,7 @@ export function generateExampleIssue(): Issue {
     Title: 'Example: Implement feature X',
     Milestone: 'v1.0.0',
     Scope: 'frontend',
-    'Size': 'M',
+    Size: 'M',
     Description:
       'This is an example description.\n\nIt can span multiple paragraphs.',
   };
@@ -25,7 +25,7 @@ export function generateEmptyIssue(): Issue {
     Title: '',
     Milestone: '',
     Scope: 'other',
-    'Size': 'M',
+    Size: 'M',
     Description: '',
   };
 }
@@ -40,7 +40,7 @@ export function generateExampleIssues(): Issue[] {
       Title: 'Create login page',
       Milestone: 'v1.0.0',
       Scope: 'frontend',
-      'Size': 'M',
+      Size: 'M',
       Description:
         'Build the main login page with email/password authentication',
     },
@@ -49,7 +49,7 @@ export function generateExampleIssues(): Issue[] {
       Title: 'Setup database schema',
       Milestone: 'v1.0.0',
       Scope: 'backend',
-      'Size': 'L',
+      Size: 'L',
       Description: 'Design and implement the initial database schema',
     },
     {
@@ -57,7 +57,7 @@ export function generateExampleIssues(): Issue[] {
       Title: 'Write API documentation',
       Milestone: 'v1.0.0',
       Scope: 'documentation',
-      'Size': 'S',
+      Size: 'S',
       Description:
         'Document all REST API endpoints with examples and error codes',
     },

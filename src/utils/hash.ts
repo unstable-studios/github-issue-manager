@@ -9,7 +9,7 @@ export function computeContentHash(issue: Issue): string {
   const content = JSON.stringify({
     description: issue.Description,
     scope: issue.Scope,
-    size: issue['Size'],
+    size: issue.Size,
     priority: issue.Priority,
     milestone: issue.Milestone,
   });
@@ -25,7 +25,7 @@ export function computeFullHash(issue: Issue): string {
     title: issue.Title,
     description: issue.Description,
     scope: issue.Scope,
-    size: issue['Size'],
+    size: issue.Size,
     milestone: issue.Milestone,
   });
 
