@@ -15,7 +15,7 @@ gim lint issues.csv --fix --output fixed.csv --config .gim-config.json
 
 # Import to GitHub (repo auto-detected; override with --repo)
 gim import issues.csv --config .gim-config.json --dry-run
-gim import issues.csv --config .gim-config.json --auto-labels
+gim import issues.csv --config .gim-config.json --auto-labels --auto-milestones
 
 # Export from GitHub (repo auto-detected; override with --repo)
 gim export --output exported.csv
@@ -76,12 +76,13 @@ here"
 
 ## Import Flags
 
-| Flag            | Description                                                          |
-| --------------- | -------------------------------------------------------------------- |
-| `--dry-run`     | Preview changes without making them                                  |
-| `--create-only` | Only create new issues, skip updates                                 |
-| `--update-only` | Only update existing issues, skip creation                           |
-| `--auto-labels` | Auto-create `scope:*`, `size:*`, `priority:*` labels when configured |
+| Flag                | Description                                                          |
+| ------------------- | -------------------------------------------------------------------- |
+| `--dry-run`         | Preview changes without making them                                  |
+| `--create-only`     | Only create new issues, skip updates                                 |
+| `--update-only`     | Only update existing issues, skip creation                           |
+| `--auto-labels`     | Auto-create `scope:*`, `size:*`, `priority:*` labels when configured |
+| `--auto-milestones` | Create missing milestones by name if they don't exist                |
 
 ## Validation Rules
 

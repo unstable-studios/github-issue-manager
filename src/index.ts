@@ -180,7 +180,7 @@ function handleLint(args: string[]) {
 function handleImport(args: string[]) {
   if (args.length === 0) {
     console.error(
-      'Usage: import <file> [--repo <owner/repo>] [--config path] [--dry-run] [--create-only] [--update-only] [--auto-labels]'
+      'Usage: import <file> [--repo <owner/repo>] [--config path] [--dry-run] [--create-only] [--update-only] [--auto-labels] [--auto-milestones]'
     );
     process.exit(1);
   }
@@ -191,6 +191,7 @@ function handleImport(args: string[]) {
   let createOnly = false;
   let updateOnly = false;
   let autoCreateLabels = false;
+  let autoCreateMilestones = false;
   let configPath: string | undefined;
 
   for (let i = 1; i < args.length; i++) {
@@ -204,6 +205,8 @@ function handleImport(args: string[]) {
       updateOnly = true;
     } else if (args[i] === '--auto-labels') {
       autoCreateLabels = true;
+    } else if (args[i] === '--auto-milestones') {
+      autoCreateMilestones = true;
     } else if (args[i] === '--config') {
       configPath = args[++i];
     }
@@ -251,6 +254,7 @@ function handleImport(args: string[]) {
     createOnly,
     updateOnly,
     autoCreateLabels,
+    autoCreateMilestones,
     repo,
   });
 
@@ -361,6 +365,7 @@ Commands:
     --create-only                 Only create new issues, skip updates
     --update-only                 Only update existing issues, skip creation
     --auto-labels                 Auto-create scope:*, size:*, priority:* labels
+    --auto-milestones             Create missing milestones by name if they don't exist
 
   export              Export issues from GitHub to CSV or JSON
     --repo OWNER/REPO             GitHub repository (auto-detects from git remote if omitted)

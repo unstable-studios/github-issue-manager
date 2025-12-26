@@ -84,6 +84,7 @@ Example:
 - `gim init --output issues.csv|json [--example] [--format json]` — create a blank or sample issue set.
 - `gim lint <file>` — validate CSV/JSON; supports `--config`, `--fix`, `--output`.
 - `gim import <file> [--repo owner/repo]` — idempotent create/update via `gh`; supports `--dry-run`, `--auto-labels`, `--create-only`, `--update-only` (repo auto-detected when omitted).
+- Milestones: pass exact names; use `--auto-milestones` to create missing milestones on the fly.
 - `gim export [--repo owner/repo] --output exported.csv` — round-trip export (CSV or `--format json`; repo auto-detected when omitted).
 - `gim migrate <file> [--output migrated.csv]` — interactive migration that fixes missing `GFS_ID`, validates fields against config, lets you add/alias/map invalid scopes/sizes/priorities via arrow-key prompts, updates the config, and writes a normalized CSV.
 
