@@ -35,6 +35,7 @@ export interface ExportOptions {
   repo: string; // owner/repo
   format: 'csv' | 'json';
   output?: string; // output file path
+  verbose?: boolean; // enable extra logging
 }
 
 export interface GithubIssue {

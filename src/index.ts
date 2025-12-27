@@ -304,6 +304,7 @@ function handleExport(args: string[]) {
   let repo = '';
   let format = 'csv';
   let output: string | null = null;
+  let verbose = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--repo') {
@@ -312,6 +313,8 @@ function handleExport(args: string[]) {
       format = args[++i];
     } else if (args[i] === '--output' || args[i] === '-o') {
       output = args[++i];
+    } else if (args[i] === '--verbose' || args[i] === '-v') {
+      verbose = true;
     }
   }
 
@@ -332,7 +335,7 @@ function handleExport(args: string[]) {
     output = format === 'json' ? 'issues-export.json' : 'issues-export.csv';
   }
 
-  const issues = exportIssues({ repo, format: format as 'csv' | 'json', output });
+  const issues = exportIssues({ repo, format: format as 'csv' | 'json', output, verbose });
 
   if (format === 'json') {
     writeJSON(output, issues);
